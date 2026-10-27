@@ -3,6 +3,7 @@ import re
 
 from .token import create_token
 from .errors import create_error
+from ..syntax.syntax import check_syntax
 
 
 # LOLCODE keywords
@@ -312,5 +313,8 @@ def tokenize(source):
                 1
             )
         )
+
+    if not errors:
+        check_syntax(tokens)
 
     return tokens, errors
