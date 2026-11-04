@@ -3,8 +3,6 @@ import re
 
 from .token import create_token
 from .errors import create_error
-from parser.syntax import check_syntax
-
 
 # LOLCODE keywords
 KEYWORDS = [
@@ -61,6 +59,10 @@ KEYWORDS = [
     "NUMBAR",
     "YARN",
     "TROOF",
+    "WAZZUP",
+    "BUHBYE",
+    "ALL OF",
+    "ANY OF",
 ]
 
 # Match longer keywords before shorter ones to avoid partial matches
@@ -88,8 +90,9 @@ def match_keyword(line, position):
 
     for keyword in KEYWORDS:
         # Allow whitespace between words in a multiword keyword.
-        pattern_text = re.escape(keyword)
-        pattern_text = re.sub(r"\\ ", r"\\s+", pattern_text)
+        pattern_text = r"[ \t]+".join(
+            re.escape(word) for word in keyword.split()
+        )
 
         pattern = re.compile(pattern_text, re.IGNORECASE)
         match = pattern.match(remaining)
@@ -244,6 +247,19 @@ def tokenize(source):
                 position = number_match.end()
                 continue
 
+            if character == "!":
+                tokens.append(
+                    create_token(
+                        "KEYWORD",
+                        character,
+                        line_number,
+                        position + 1
+                    )
+                )
+                position += 1
+                continue
+
+
             malformed_match = MALFORMED_NUMBAR_PATTERN.match(
                 line, position
             )
@@ -314,7 +330,5 @@ def tokenize(source):
             )
         )
 
-    if not errors:
-        check_syntax(tokens)
 
     return tokens, errors
