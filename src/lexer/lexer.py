@@ -3,7 +3,7 @@ import re
 
 from .token import create_token
 from .errors import create_error
-from ..syntax.syntax import check_syntax
+from parser.syntax import check_syntax
 
 
 # LOLCODE keywords
