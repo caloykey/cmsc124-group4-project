@@ -389,19 +389,76 @@ def group_by_line(tokens):
 
 
 def check_statements(tokens):
-    """Check every statement between HAI and KTHXBYE, one per line."""
-
     errors = []
     declared = frozenset()
+    inside_declarations = False
+    declaration_block_seen = False
+    opening_token = None
 
     for line_tokens in group_by_line(split_body(tokens)):
-        # A repeated HAI is already reported by check_program_structure
-        if name_of(line_tokens[0]) == "HAI":
+        first = line_tokens[0]
+        keyword = name_of(first)
+
+        if keyword == "HAI":
+            continue
+
+        if keyword == "WAZZUP":
+            if inside_declarations:
+                errors.append(error_at(
+                    line_tokens, "Nested WAZZUP is not allowed.", first
+                ))
+            elif declaration_block_seen:
+                errors.append(error_at(
+                    line_tokens, "Only one declaration block is allowed.", first
+                ))
+            else:
+                inside_declarations = True
+                declaration_block_seen = True
+                opening_token = first
+
+            error = check_line_end(line_tokens, 1)
+            if error:
+                errors.append(error)
+            continue
+
+        if keyword == "BUHBYE":
+            if not inside_declarations:
+                errors.append(error_at(
+                    line_tokens, "BUHBYE found without WAZZUP.", first
+                ))
+            else:
+                inside_declarations = False
+
+            error = check_line_end(line_tokens, 1)
+            if error:
+                errors.append(error)
+            continue
+
+        if keyword == "I HAS A" and not inside_declarations:
+            errors.append(error_at(
+                line_tokens,
+                "Variable declarations must be inside WAZZUP ... BUHBYE.",
+                first
+            ))
+            continue
+
+        if inside_declarations and keyword != "I HAS A":
+            errors.append(error_at(
+                line_tokens,
+                "Only variable declarations are allowed before BUHBYE.",
+                first
+            ))
             continue
 
         error, declared = check_statement(line_tokens, declared)
-
         if error:
             errors.append(error)
+
+    if inside_declarations:
+        errors.append(create_error(
+            "Missing BUHBYE to close the declaration block.",
+            opening_token["line"],
+            opening_token["column"]
+        ))
 
     return errors
