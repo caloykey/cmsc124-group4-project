@@ -2,7 +2,7 @@
 import re
 
 from .token import create_token
-from .errors import create_error
+from errors import create_error
 
 # LOLCODE keywords
 KEYWORDS = [

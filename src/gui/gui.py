@@ -3,7 +3,8 @@ import tkinter as tk
 from tkinter import ttk
 
 from lexer.lexer import tokenize
-from lexer.errors import format_error
+from errors import format_error
+from parser.syntax import check_syntax
 
 
 SAMPLE_CODE = '''HAI
@@ -14,42 +15,42 @@ VISIBLE "Hello World!"
 KTHXBYE'''
 
 
-def run_lexer():
-    source = code_editor.get("1.0", tk.END)
+def run_analysis():
+    source = code_editor.get("1.0", "end-1c")
     tokens, errors = tokenize(source)
+    phase = "Lexical"
 
-    # Clear old token results.
+    if not errors:
+        errors = check_syntax(tokens)
+        phase = "Syntax"
+
     for item in token_table.get_children():
         token_table.delete(item)
 
-    # Display the new tokens.
     for token in tokens:
         token_table.insert(
-            "",
-            tk.END,
-            values=(
-                token["type"],
-                token["lexeme"],
-                token["line"],
-                token["column"]
+            "", tk.END,
+            values=tuple(
+                token[key] for key in ("type", "lexeme", "line", "column")
             )
         )
 
-    # Clear and update the error panel.
-    error_output.config(state=tk.NORMAL)
-    error_output.delete("1.0", tk.END)
-
     if errors:
-        for error in errors:
-            error_output.insert(
-                tk.END,
-                format_error(error) + "\n"
-            )
+        message = f"{phase} errors:\n\n"
+        message += "\n".join(format_error(error) for error in errors)
+
+        if phase == "Lexical":
+            message += "\n\nSyntax checking skipped. Fix lexical errors first."
     else:
-        error_output.insert(tk.END, "No lexical errors found.")
+        message = "No lexical or syntax errors found by the implemented checks."
 
+    error_output.config(
+        state=tk.NORMAL,
+        foreground="red" if errors else "green"
+    )
+    error_output.delete("1.0", tk.END)
+    error_output.insert(tk.END, message)
     error_output.config(state=tk.DISABLED)
-
 
 def load_sample():
     code_editor.delete("1.0", tk.END)
@@ -71,14 +72,14 @@ def create_gui():
     global code_editor, token_table, error_output
 
     root = tk.Tk()
-    root.title("LOLCODE Lexical Analyzer")
+    root.title("LOLCODE Lexical & Syntax Analyzer")
     root.geometry("1000x750")
     root.minsize(700, 500)
 
     # Main heading.
     heading = ttk.Label(
         root,
-        text="LOLCODE Lexical Analyzer",
+        text="LOLCODE Lexical & Syntax Analyzer",
         font=("Arial", 18, "bold")
     )
     heading.pack(pady=10)
@@ -116,8 +117,8 @@ def create_gui():
 
     ttk.Button(
         button_frame,
-        text="Run Lexer",
-        command=run_lexer
+        text="Analyze",
+        command=run_analysis
     ).pack(side=tk.LEFT, padx=(0, 5))
 
     ttk.Button(
@@ -174,7 +175,7 @@ def create_gui():
     # Error output section.
     ttk.Label(
         root,
-        text="Lexical Errors",
+        text="Errors",
         font=("Arial", 11, "bold")
     ).pack(anchor="w", padx=12, pady=(8, 2))
 
