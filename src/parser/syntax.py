@@ -1,4 +1,4 @@
-from ..lexer import create_error
+from lexer.errors import create_error
 
 
 def check_syntax(tokens):
