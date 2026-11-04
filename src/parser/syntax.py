@@ -323,6 +323,21 @@ def parse_expression_statement(tokens, declared):
 
     return check_line_end(tokens, position), declared
 
+def parse_assignment(tokens, declared):
+    """<variable> R <expression>"""
+
+    operator = token_at(tokens, 1)
+
+    if operator is None or name_of(operator) != "R":
+        return error_at(
+            tokens, "Expected R after the variable name.", operator
+        ), declared
+
+    position, error = parse_expression(tokens, 2, declared)
+    if error:
+        return error, declared
+
+    return check_line_end(tokens, position), declared
 
 # Statement start -> function that checks it. Each one takes
 # (tokens, declared) and returns (error_or_None, declared_after).
@@ -345,6 +360,9 @@ def check_statement(tokens, declared):
 
     if keyword in ARITHMETIC_OPERATORS:
         return parse_expression_statement(tokens, declared)
+
+    if first["type"] == "IDENTIFIER":
+        return parse_assignment(tokens, declared)
 
     return error_at(
         tokens,
