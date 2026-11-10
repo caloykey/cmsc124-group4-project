@@ -47,10 +47,16 @@ def parse_expression(tokens, position, declared, in_variadic=False):
     position += 1
 
     # Literals: 12, 3.14, "text", WIN, FAIL
-    if token["type"] in LITERAL_TYPES:
+    if (
+        token["type"] in LITERAL_TYPES
+        or (
+            token["type"] == "TYPE_LITERAL"
+            and name_of(token) == "NOOB"
+        )
+    ):
         return position, None
 
-    # Variables must be declared with I HAS A first
+    # Variable existence and scope are checked by semantic analysis.
     if token["type"] == "IDENTIFIER":
         return position, None
 

@@ -10,6 +10,7 @@ from .expressions import (
     BINARY_OPERATORS,
     VARIADIC_BOOLEAN_OPERATORS,
     TYPE_NAMES,
+    LITERAL_TYPES,
 )
 
 def parse_declaration(tokens, declared):
@@ -142,6 +143,15 @@ def check_statement(tokens, declared):
     if keyword in STATEMENTS:
         return STATEMENTS[keyword](tokens, declared)
 
+    if (
+        first["type"] in LITERAL_TYPES
+        or (
+            first["type"] == "TYPE_LITERAL"
+            and keyword == "NOOB"
+        )
+    ):
+        return parse_expression_statement(tokens, declared)
+
     if (keyword in BINARY_OPERATORS 
     or keyword in {"NOT","SMOOSH", "MAEK", "I IZ"} 
     or keyword in VARIADIC_BOOLEAN_OPERATORS):
@@ -150,10 +160,14 @@ def check_statement(tokens, declared):
     if first["type"] == "IDENTIFIER":
         following = token_at(tokens, 1)
 
-        if following is not None and name_of(following) == "IS NOW A":
-            return parse_recast(tokens, declared)
+        if following is not None:
+            if name_of(following) == "IS NOW A":
+                return parse_recast(tokens, declared)
 
-        return parse_assignment(tokens, declared)
+            if name_of(following) == "R":
+                return parse_assignment(tokens, declared)
+
+        return parse_expression_statement(tokens, declared)
 
     return error_at(
         tokens,
