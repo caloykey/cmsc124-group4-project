@@ -146,6 +146,11 @@ BOOLEAN_OPERATORS = {
     "WON OF",
 }
 
+VARIADIC_BOOLEAN_OPERATORS = {
+    "ALL OF",
+    "ANY OF",
+}
+
 BINARY_OPERATORS = ARITHMETIC_OPERATORS | BOOLEAN_OPERATORS
 
 LITERAL_TYPES = {"NUMBR", "NUMBAR", "YARN", "TROOF"}
@@ -186,7 +191,7 @@ def check_line_end(tokens, position):
     return None
 
 
-def parse_expression(tokens, position, declared):
+def parse_expression(tokens, position, declared, in_variadic=False):
     """
     expression := NUMBR | NUMBAR | YARN | TROOF | variable
                 | <arithmetic operator> expression AN expression
@@ -217,13 +222,60 @@ def parse_expression(tokens, position, declared):
         return position, None
 
     if name_of(token) == "NOT":
-        return parse_expression(tokens, position, declared)
+        return parse_expression(tokens, position, declared, in_variadic)
+
+    if name_of(token) in VARIADIC_BOOLEAN_OPERATORS:
+        operator = name_of(token)
+
+        if in_variadic:
+            return position, error_at(
+                tokens,
+                "ALL OF and ANY OF cannot be nested "
+                "inside ALL OF or ANY OF.",
+                token
+            )
+
+        # Read the first operand.
+        position, error = parse_expression(
+            tokens, position, declared, True
+        )
+
+        if error:
+            return position, error
+
+        while True:
+            following = token_at(tokens, position)
+
+            if following is None:
+                return position, error_at(
+                    tokens,
+                    f"Expected MKAY to close {operator}."
+                )
+
+            if name_of(following) == "MKAY":
+                return position + 1, None
+
+            if name_of(following) != "AN":
+                return position, error_at(
+                    tokens,
+                    f"Expected AN or MKAY after an operand of {operator}.",
+                    following
+                )
+
+            position += 1
+
+            position, error = parse_expression(
+                tokens, position, declared, True
+            )
+
+            if error:
+                return position, error
 
     # SUM OF x AN y  (operands can be nested expressions)
     if name_of(token) in BINARY_OPERATORS:
         operator = name_of(token)
 
-        position, error = parse_expression(tokens, position, declared)
+        position, error = parse_expression(tokens, position, declared, in_variadic)
         if error:
             return position, error
 
@@ -236,7 +288,7 @@ def parse_expression(tokens, position, declared):
             )
         position += 1
 
-        return parse_expression(tokens, position, declared)
+        return parse_expression(tokens, position, declared, in_variadic)
 
     return position, error_at(
         tokens,
@@ -369,7 +421,7 @@ def check_statement(tokens, declared):
     if keyword in STATEMENTS:
         return STATEMENTS[keyword](tokens, declared)
 
-    if keyword in BINARY_OPERATORS or keyword == "NOT":
+    if keyword in BINARY_OPERATORS or keyword == "NOT" or keyword in VARIADIC_BOOLEAN_OPERATORS:
         return parse_expression_statement(tokens, declared)
 
     if first["type"] == "IDENTIFIER":
