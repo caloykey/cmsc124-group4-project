@@ -159,6 +159,7 @@ COMPARISON_OPERATORS = {
 BINARY_OPERATORS = ARITHMETIC_OPERATORS | BOOLEAN_OPERATORS | COMPARISON_OPERATORS
 
 LITERAL_TYPES = {"NUMBR", "NUMBAR", "YARN", "TROOF"}
+TYPE_NAMES = {"NOOB", "NUMBR", "NUMBAR", "YARN", "TROOF"}
 
 
 def name_of(token):
@@ -311,6 +312,36 @@ def parse_expression(tokens, position, declared, in_variadic=False):
             if error:
                 return position, error
 
+    if name_of(token) == "MAEK":
+        position, error = parse_expression(
+            tokens, position, declared, in_variadic
+        )
+
+        if error:
+            return position, error
+
+        # A is optional in MAEK expressions.
+        following = token_at(tokens, position)
+
+        if following is not None and name_of(following) == "A":
+            position += 1
+
+        type_token = token_at(tokens, position)
+
+        if (
+            type_token is None
+            or type_token["type"] != "TYPE_LITERAL"
+            or name_of(type_token) not in TYPE_NAMES
+        ):
+            return position, error_at(
+                tokens,
+                "Expected a type after MAEK: "
+                "NOOB, NUMBR, NUMBAR, YARN, or TROOF.",
+                type_token
+            )
+
+        return position + 1, None
+
     # SUM OF x AN y  (operands can be nested expressions)
     if name_of(token) in BINARY_OPERATORS:
         operator = name_of(token)
@@ -451,6 +482,24 @@ STATEMENTS = {
     "GIMMEH": parse_gimmeh,
 }
 
+def parse_recast(tokens, declared):
+    """<variable> IS NOW A <type>"""
+
+    type_token = token_at(tokens, 2)
+
+    if (
+        type_token is None
+        or type_token["type"] != "TYPE_LITERAL"
+        or name_of(type_token) not in TYPE_NAMES
+    ):
+        return error_at(
+            tokens,
+            "Expected a type after IS NOW A: "
+            "NOOB, NUMBR, NUMBAR, YARN, or TROOF.",
+            type_token
+        ), declared
+
+    return check_line_end(tokens, 3), declared
 
 def check_statement(tokens, declared):
     """Check one line. Returns (error_or_None, declared_after)."""
@@ -462,11 +511,16 @@ def check_statement(tokens, declared):
         return STATEMENTS[keyword](tokens, declared)
 
     if (keyword in BINARY_OPERATORS 
-    or keyword in {"NOT","SMOOSH"} 
+    or keyword in {"NOT","SMOOSH", "MAEK"} 
     or keyword in VARIADIC_BOOLEAN_OPERATORS):
         return parse_expression_statement(tokens, declared)
 
     if first["type"] == "IDENTIFIER":
+        following = token_at(tokens, 1)
+
+        if following is not None and name_of(following) == "IS NOW A":
+            return parse_recast(tokens, declared)
+
         return parse_assignment(tokens, declared)
 
     return error_at(
