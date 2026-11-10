@@ -48,23 +48,28 @@ def check_program_structure(tokens):
                 first["column"]
             )
         )
-    elif len(tokens) > 1:
-        # HAI may be followed by a version number (HAI 1.2),
-        # but nothing else on the same line.
-        following = tokens[1]
-        on_same_line = following["line"] == first["line"]
-        is_version = following["type"] == "NUMBAR"
-        is_end = following["lexeme"] == "KTHXBYE"  # reported below
+    else:
+        header = []
 
-        if on_same_line and not is_version and not is_end:
-            errors.append(
-                create_error(
-                    "HAI must be alone on its line "
-                    "(only a version number may follow it).",
-                    following["line"],
-                    following["column"]
-                )
-            )
+        for token in tokens:
+            if token["line"] != first["line"]:
+                break
+            header.append(token)
+
+        position = 1
+
+        # Optional version number after HAI.
+        if (
+            position < len(header)
+            and header[position]["type"] == "NUMBAR"
+            and not header[position]["lexeme"].startswith("-")
+        ):
+            position += 1
+
+        error = check_line_end(header, position)
+
+        if error:
+            errors.append(error)
 
     # Any other HAI later in the program is a mistake
     for token in tokens[1:]:
