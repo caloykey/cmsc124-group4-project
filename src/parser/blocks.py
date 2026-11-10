@@ -175,12 +175,12 @@ def check_switch_line(tokens, block_stack):
             return True, error
 
         if not any(
-            block["kind"] in {"switch", "loop"}
+            block["kind"] in {"switch", "loop", "function"}
             for block in block_stack
         ):
             return True, error_at(
                 tokens,
-                "GTFO requires an enclosing switch or loop.",
+                "GTFO requires an enclosing switch , loop, or function.",
                 first
             )
 
@@ -299,6 +299,121 @@ def check_loop_line(tokens, declared, block_stack):
     return False, None
 
 
+def check_function_line(tokens, declared, block_stack):
+    """Check function definitions, closing delimiters, and returns."""
+
+    first = tokens[0]
+    keyword = name_of(first)
+
+    if keyword == "HOW IZ I":
+        if block_stack:
+            return True, error_at(
+                tokens,
+                "Function definitions must be at the top level.",
+                first
+            )
+
+        function_name = token_at(tokens, 1)
+
+        if (
+            function_name is None
+            or function_name["type"] != "IDENTIFIER"
+        ):
+            return True, error_at(
+                tokens,
+                "Expected a function name after HOW IZ I.",
+                function_name
+            )
+
+        position = 2
+        following = token_at(tokens, position)
+
+        if following is not None and name_of(following) == "YR":
+            position += 1
+
+            while True:
+                parameter = token_at(tokens, position)
+
+                if (
+                    parameter is None
+                    or parameter["type"] != "IDENTIFIER"
+                ):
+                    return True, error_at(
+                        tokens,
+                        "Expected a parameter name after YR.",
+                        parameter
+                    )
+
+                position += 1
+                following = token_at(tokens, position)
+
+                if following is None or name_of(following) != "AN":
+                    break
+
+                position += 1
+                separator = token_at(tokens, position)
+
+                if separator is None or name_of(separator) != "YR":
+                    return True, error_at(
+                        tokens,
+                        "Expected YR after AN in function parameters.",
+                        separator
+                    )
+
+                position += 1
+
+        error = check_line_end(tokens, position)
+
+        if not error:
+            block_stack.append({
+                "kind": "function",
+                "token": first,
+                "name": function_name["lexeme"]
+            })
+
+        return True, error
+
+    if keyword == "IF U SAY SO":
+        error = check_line_end(tokens, 1)
+
+        if error:
+            return True, error
+
+        if (
+            not block_stack
+            or block_stack[-1]["kind"] != "function"
+        ):
+            return True, error_at(
+                tokens,
+                "Unexpected IF U SAY SO: close any nested "
+                "blocks first, and ensure a function is open.",
+                first
+            )
+
+        block_stack.pop()
+        return True, None
+
+    if keyword == "FOUND YR":
+        if not any(
+            block["kind"] == "function"
+            for block in block_stack
+        ):
+            return True, error_at(
+                tokens,
+                "FOUND YR is only allowed inside a function.",
+                first
+            )
+
+        position, error = parse_expression(tokens, 1, declared)
+
+        if not error:
+            error = check_line_end(tokens, position)
+
+        return True, error
+
+    return False, None
+
+
 def check_block_line(tokens, declared, block_stack):
     """Dispatch block checks and close the nearest block."""
 
@@ -321,10 +436,15 @@ def check_block_line(tokens, declared, block_stack):
         block = block_stack[-1]
 
         if block["kind"] not in {"if", "switch"}:
+            expected = {
+                "loop": "IM OUTTA YR",
+                "function": "IF U SAY SO",
+            }[block["kind"]]
+
             return True, error_at(
                 tokens,
-                "OIC cannot close a loop. "
-                "Expected IM OUTTA YR followed by its label.",
+                f"OIC cannot close a {block['kind']} block. "
+                f"Expected {expected}.",
                 first
             )
 
@@ -370,4 +490,11 @@ def check_block_line(tokens, declared, block_stack):
     if handled:
         return handled, error
 
-    return check_loop_line(tokens, declared, block_stack)
+    handled, error = check_loop_line(
+        tokens, declared, block_stack
+    )
+
+    if handled:
+        return handled, error
+
+    return check_function_line(tokens, declared, block_stack)

@@ -78,14 +78,6 @@ def parse_gimmeh(tokens, declared):
             tokens, "Expected a variable name after GIMMEH.", name_token
         ), declared
 
-    if name_token["lexeme"] not in declared:
-        return error_at(
-            tokens,
-            f"Variable '{name_token['lexeme']}' is used before it is "
-            "declared (use I HAS A).",
-            name_token
-        ), declared
-
     return check_line_end(tokens, 2), declared
 
 def parse_expression_statement(tokens, declared):
@@ -151,7 +143,7 @@ def check_statement(tokens, declared):
         return STATEMENTS[keyword](tokens, declared)
 
     if (keyword in BINARY_OPERATORS 
-    or keyword in {"NOT","SMOOSH", "MAEK"} 
+    or keyword in {"NOT","SMOOSH", "MAEK", "I IZ"} 
     or keyword in VARIADIC_BOOLEAN_OPERATORS):
         return parse_expression_statement(tokens, declared)
 

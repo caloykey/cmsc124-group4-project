@@ -52,13 +52,6 @@ def parse_expression(tokens, position, declared, in_variadic=False):
 
     # Variables must be declared with I HAS A first
     if token["type"] == "IDENTIFIER":
-        if token["lexeme"] not in declared:
-            return position, error_at(
-                tokens,
-                f"Variable '{token['lexeme']}' is used before it is "
-                "declared (use I HAS A).",
-                token
-            )
         return position, None
 
     if name_of(token) == "NOT":
@@ -172,6 +165,61 @@ def parse_expression(tokens, position, declared, in_variadic=False):
                 "Expected a type after MAEK: "
                 "NOOB, NUMBR, NUMBAR, YARN, or TROOF.",
                 type_token
+            )
+
+        return position + 1, None
+
+    if name_of(token) == "I IZ":
+        function_name = token_at(tokens, position)
+
+        if (
+            function_name is None
+            or function_name["type"] != "IDENTIFIER"
+        ):
+            return position, error_at(
+                tokens,
+                "Expected a function name after I IZ.",
+                function_name
+            )
+
+        position += 1
+        following = token_at(tokens, position)
+
+        if following is not None and name_of(following) == "YR":
+            position += 1
+
+            while True:
+                position, error = parse_expression(
+                    tokens, position, declared, in_variadic
+                )
+
+                if error:
+                    return position, error
+
+                following = token_at(tokens, position)
+
+                if following is None or name_of(following) != "AN":
+                    break
+
+                position += 1
+                separator = token_at(tokens, position)
+
+                if separator is None or name_of(separator) != "YR":
+                    return position, error_at(
+                        tokens,
+                        "Expected YR after AN in a function call.",
+                        separator
+                    )
+
+                position += 1
+
+        closing = token_at(tokens, position)
+
+        if closing is None or name_of(closing) != "MKAY":
+            return position, error_at(
+                tokens,
+                "Expected MKAY to close the function call.",
+                closing
             )
 
         return position + 1, None

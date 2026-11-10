@@ -268,6 +268,13 @@ def check_statements(tokens):
                 f"Missing IM OUTTA YR {block['label']} "
                 "to close the loop."
             )
+
+        elif block["kind"] == "function":
+            message = (
+                f"Missing IF U SAY SO to close "
+                f"function '{block['name']}'."
+            )
+        
         else:
             message = (
                 f"Missing OIC to close the {block['kind']} block."
