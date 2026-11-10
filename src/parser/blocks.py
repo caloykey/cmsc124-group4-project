@@ -1,7 +1,7 @@
-from .helpers import name_of, error_at, check_line_end
-from .expressions import parse_expression
+from .helpers import name_of, error_at, check_line_end, token_at
+from .expressions import parse_expression, LITERAL_TYPES
 
-def check_if_line(tokens, declared, if_stack):
+def check_if_line(tokens, declared, block_stack):
     """Return (handled, error). Track if blocks without executing them."""
 
     first = tokens[0]
@@ -9,8 +9,9 @@ def check_if_line(tokens, declared, if_stack):
 
     # O RLY? must be followed by YA RLY.
     if (
-        if_stack
-        and if_stack[-1]["phase"] == "start"
+        block_stack
+        and block_stack[-1]["kind"] == "if"
+        and block_stack[-1]["phase"] == "start"
         and keyword != "YA RLY"
     ):
         return True, error_at(
@@ -23,22 +24,23 @@ def check_if_line(tokens, declared, if_stack):
         error = check_line_end(tokens, 1)
 
         if not error:
-            if_stack.append({
+            block_stack.append({
+                "kind": "if",
                 "token": first,
                 "phase": "start"
             })
 
         return True, error
 
-    if keyword in {"YA RLY", "MEBBE", "NO WAI", "OIC"}:
-        if not if_stack:
+    if keyword in {"YA RLY", "MEBBE", "NO WAI"}:
+        if not block_stack or block_stack[-1]["kind"] != "if":
             return True, error_at(
                 tokens,
                 f"Unexpected {keyword}: no matching O RLY?.",
                 first
             )
 
-        block = if_stack[-1]
+        block = block_stack[-1]
 
         if keyword == "YA RLY":
             if block["phase"] != "start":
@@ -90,12 +92,159 @@ def check_if_line(tokens, declared, if_stack):
 
             return True, error
 
-        # OIC closes the innermost if block.
+    return False, None
+
+def check_switch_line(tokens, block_stack):
+    """Check switch delimiters, literal cases, and GTFO."""
+
+    first = tokens[0]
+    keyword = name_of(first)
+
+    if keyword == "WTF?":
         error = check_line_end(tokens, 1)
 
         if not error:
-            if_stack.pop()
+            block_stack.append({
+                "kind": "switch",
+                "token": first,
+                "phase": "start",
+                "cases": 0
+            })
 
         return True, error
 
+    if keyword in {"OMG", "OMGWTF"}:
+        if (
+            not block_stack
+            or block_stack[-1]["kind"] != "switch"
+        ):
+            return True, error_at(
+                tokens,
+                f"Unexpected {keyword}: no matching switch "
+                "at this nesting level.",
+                first
+            )
+
+        block = block_stack[-1]
+
+        if block["phase"] == "default":
+            return True, error_at(
+                tokens,
+                "OMGWTF must be last and can only occur once.",
+                first
+            )
+
+        if keyword == "OMG":
+            literal = token_at(tokens, 1)
+
+            if (
+                literal is None
+                or not (
+                    literal["type"] in LITERAL_TYPES
+                    or (
+                        literal["type"] == "TYPE_LITERAL"
+                        and name_of(literal) == "NOOB"
+                    )
+                )
+            ):
+                return True, error_at(
+                    tokens,
+                    "Expected a literal after OMG.",
+                    literal
+                )
+
+            error = check_line_end(tokens, 2)
+
+            if not error:
+                block["cases"] += 1
+                block["phase"] = "case"
+
+            return True, error
+
+        error = check_line_end(tokens, 1)
+
+        if not error:
+            block["phase"] = "default"
+
+        return True, error
+
+    if keyword == "GTFO":
+        error = check_line_end(tokens, 1)
+
+        if error:
+            return True, error
+
+        if not any(
+            block["kind"] == "switch"
+            for block in block_stack
+        ):
+            return True, error_at(
+                tokens,
+                "GTFO requires an enclosing switch.",
+                first
+            )
+
+        return True, None
+
     return False, None
+
+
+def check_block_line(tokens, declared, block_stack):
+    """Dispatch block checks and close the nearest block."""
+
+    first = tokens[0]
+    keyword = name_of(first)
+
+    if keyword == "OIC":
+        error = check_line_end(tokens, 1)
+
+        if error:
+            return True, error
+
+        if not block_stack:
+            return True, error_at(
+                tokens,
+                "Unexpected OIC: no matching if or switch.",
+                first
+            )
+
+        block = block_stack[-1]
+
+        if block["kind"] == "if" and block["phase"] == "start":
+            return True, error_at(
+                tokens,
+                "Missing YA RLY before OIC.",
+                first
+            )
+
+        if block["kind"] == "switch" and block["cases"] == 0:
+            return True, error_at(
+                tokens,
+                "A switch requires at least one OMG case.",
+                first
+            )
+
+        block_stack.pop()
+        return True, None
+
+    # A switch body cannot start before a case label.
+    if (
+        block_stack
+        and block_stack[-1]["kind"] == "switch"
+        and block_stack[-1]["phase"] == "start"
+        and keyword not in {"OMG", "OMGWTF"}
+    ):
+        return True, error_at(
+            tokens,
+            "Expected OMG or OMGWTF before switch statements.",
+            first
+        )
+
+    handled, error = check_if_line(
+        tokens, declared, block_stack
+    )
+
+    if handled:
+        return handled, error
+
+    return check_switch_line(tokens, block_stack)

@@ -1,7 +1,7 @@
 from errors import create_error
 from .helpers import name_of, error_at, check_line_end
 from .statements import check_statement
-from .blocks import check_if_line
+from .blocks import check_block_line
 
 
 def check_syntax(tokens):
@@ -169,7 +169,7 @@ def group_by_line(tokens):
 
 def check_statements(tokens):
     errors = []
-    if_stack = []
+    block_stack = []
     declared = frozenset()
     inside_declarations = False
     declaration_block_seen = False
@@ -184,10 +184,10 @@ def check_statements(tokens):
 
         if keyword == "WAZZUP":
 
-            if if_stack:
+            if block_stack:
                 errors.append(error_at(
                     line_tokens,
-                    "WAZZUP cannot appear inside an if block.",
+                    "WAZZUP cannot appear inside a control-flow block.",
                     first
                 ))
                 continue
@@ -239,8 +239,8 @@ def check_statements(tokens):
             ))
             continue
 
-        handled, error = check_if_line(
-            line_tokens, declared, if_stack
+        handled, error = check_block_line(
+            line_tokens, declared, block_stack
         )
 
         if handled:
@@ -260,11 +260,11 @@ def check_statements(tokens):
             opening_token["column"]
         ))
 
-    for block in reversed(if_stack):
+    for block in reversed(block_stack):
         opening = block["token"]
 
         errors.append(create_error(
-            "Missing OIC to close the if block.",
+            f"Missing OIC to close the {block['kind']} block.",
             opening["line"],
             opening["column"]
         ))
