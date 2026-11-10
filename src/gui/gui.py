@@ -8,10 +8,26 @@ from parser.syntax import check_syntax
 
 
 SAMPLE_CODE = '''HAI
-BTW This is a comment
-I HAS A name ITZ "Carlos"
-I HAS A age ITZ 20
-VISIBLE "Hello World!"
+BTW Sample of currently supported syntax
+WAZZUP
+I HAS A name ITZ "Juan Dela Cruz"
+I HAS A age ITZ 18
+BUHBYE
+
+age R SUM OF age AN 1
+VISIBLE SMOOSH "Hello, " AN name MKAY
+VISIBLE MAEK age A YARN
+VISIBLE BOTH OF WIN AN NOT FAIL
+VISIBLE ANY OF FAIL AN WIN MKAY
+
+BOTH SAEM age AN 21
+O RLY?
+YA RLY
+    VISIBLE "Age is twenty-one"
+NO WAI
+    VISIBLE "Age is different"
+OIC
+
 KTHXBYE'''
 
 
