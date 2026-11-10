@@ -501,6 +501,105 @@ def parse_recast(tokens, declared):
 
     return check_line_end(tokens, 3), declared
 
+def check_if_line(tokens, declared, if_stack):
+    """Return (handled, error). Track if blocks without executing them."""
+
+    first = tokens[0]
+    keyword = name_of(first)
+
+    # O RLY? must be followed by YA RLY.
+    if (
+        if_stack
+        and if_stack[-1]["phase"] == "start"
+        and keyword != "YA RLY"
+    ):
+        return True, error_at(
+            tokens,
+            "Expected YA RLY after O RLY?.",
+            first
+        )
+
+    if keyword == "O RLY?":
+        error = check_line_end(tokens, 1)
+
+        if not error:
+            if_stack.append({
+                "token": first,
+                "phase": "start"
+            })
+
+        return True, error
+
+    if keyword in {"YA RLY", "MEBBE", "NO WAI", "OIC"}:
+        if not if_stack:
+            return True, error_at(
+                tokens,
+                f"Unexpected {keyword}: no matching O RLY?.",
+                first
+            )
+
+        block = if_stack[-1]
+
+        if keyword == "YA RLY":
+            if block["phase"] != "start":
+                return True, error_at(
+                    tokens,
+                    "YA RLY must occur once, before other branches.",
+                    first
+                )
+
+            error = check_line_end(tokens, 1)
+
+            if not error:
+                block["phase"] = "then"
+
+            return True, error
+
+        if keyword == "MEBBE":
+            if block["phase"] not in {"then", "elif"}:
+                return True, error_at(
+                    tokens,
+                    "MEBBE must follow YA RLY or MEBBE, "
+                    "and cannot follow NO WAI.",
+                    first
+                )
+
+            position, error = parse_expression(tokens, 1, declared)
+
+            if not error:
+                error = check_line_end(tokens, position)
+
+            if not error:
+                block["phase"] = "elif"
+
+            return True, error
+
+        if keyword == "NO WAI":
+            if block["phase"] not in {"then", "elif"}:
+                return True, error_at(
+                    tokens,
+                    "NO WAI must follow YA RLY or MEBBE "
+                    "and can only occur once.",
+                    first
+                )
+
+            error = check_line_end(tokens, 1)
+
+            if not error:
+                block["phase"] = "else"
+
+            return True, error
+
+        # OIC closes the innermost if block.
+        error = check_line_end(tokens, 1)
+
+        if not error:
+            if_stack.pop()
+
+        return True, error
+
+    return False, None
+
 def check_statement(tokens, declared):
     """Check one line. Returns (error_or_None, declared_after)."""
 
@@ -567,6 +666,7 @@ def group_by_line(tokens):
 
 def check_statements(tokens):
     errors = []
+    if_stack = []
     declared = frozenset()
     inside_declarations = False
     declaration_block_seen = False
@@ -580,6 +680,15 @@ def check_statements(tokens):
             continue
 
         if keyword == "WAZZUP":
+
+            if if_stack:
+                errors.append(error_at(
+                    line_tokens,
+                    "WAZZUP cannot appear inside an if block.",
+                    first
+                ))
+                continue
+
             if inside_declarations:
                 errors.append(error_at(
                     line_tokens, "Nested WAZZUP is not allowed.", first
@@ -627,7 +736,17 @@ def check_statements(tokens):
             ))
             continue
 
+        handled, error = check_if_line(
+            line_tokens, declared, if_stack
+        )
+
+        if handled:
+            if error:
+                errors.append(error)
+            continue
+
         error, declared = check_statement(line_tokens, declared)
+
         if error:
             errors.append(error)
 
@@ -636,6 +755,15 @@ def check_statements(tokens):
             "Missing BUHBYE to close the declaration block.",
             opening_token["line"],
             opening_token["column"]
+        ))
+
+    for block in reversed(if_stack):
+        opening = block["token"]
+
+        errors.append(create_error(
+            "Missing OIC to close the if block.",
+            opening["line"],
+            opening["column"]
         ))
 
     return errors
