@@ -217,7 +217,7 @@ def parse_expression(tokens, position, declared):
         return position, None
 
     # SUM OF x AN y  (operands can be nested expressions)
-    if name_of(token) in ARITHMETIC_OPERATORS:
+    if name_of(token) in BINARY_OPERATORS:
         operator = name_of(token)
 
         position, error = parse_expression(tokens, position, declared)
@@ -366,7 +366,7 @@ def check_statement(tokens, declared):
     if keyword in STATEMENTS:
         return STATEMENTS[keyword](tokens, declared)
 
-    if keyword in ARITHMETIC_OPERATORS:
+    if keyword in BINARY_OPERATORS:
         return parse_expression_statement(tokens, declared)
 
     if first["type"] == "IDENTIFIER":
