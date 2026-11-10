@@ -263,8 +263,18 @@ def check_statements(tokens):
     for block in reversed(block_stack):
         opening = block["token"]
 
+        if block["kind"] == "loop":
+            message = (
+                f"Missing IM OUTTA YR {block['label']} "
+                "to close the loop."
+            )
+        else:
+            message = (
+                f"Missing OIC to close the {block['kind']} block."
+            )
+
         errors.append(create_error(
-            f"Missing OIC to close the {block['kind']} block.",
+            message,
             opening["line"],
             opening["column"]
         ))

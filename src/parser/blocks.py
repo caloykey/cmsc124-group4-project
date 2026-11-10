@@ -175,15 +175,125 @@ def check_switch_line(tokens, block_stack):
             return True, error
 
         if not any(
-            block["kind"] == "switch"
+            block["kind"] in {"switch", "loop"}
             for block in block_stack
         ):
             return True, error_at(
                 tokens,
-                "GTFO requires an enclosing switch.",
+                "GTFO requires an enclosing switch or loop.",
                 first
             )
 
+        return True, None
+
+    return False, None
+
+
+def check_loop_line(tokens, declared, block_stack):
+    """Check loop headers and matching closing labels."""
+
+    first = tokens[0]
+    keyword = name_of(first)
+
+    if keyword == "IM IN YR":
+        label = token_at(tokens, 1)
+
+        if label is None or label["type"] != "IDENTIFIER":
+            return True, error_at(
+                tokens,
+                "Expected a loop label after IM IN YR.",
+                label
+            )
+
+        position = 2
+        following = token_at(tokens, position)
+
+        # Optional increment/decrement clause.
+        if (
+            following is not None
+            and name_of(following) in {"UPPIN", "NERFIN"}
+        ):
+            position += 1
+            separator = token_at(tokens, position)
+
+            if separator is None or name_of(separator) != "YR":
+                return True, error_at(
+                    tokens,
+                    "Expected YR after UPPIN or NERFIN.",
+                    separator
+                )
+
+            position += 1
+            variable = token_at(tokens, position)
+
+            if variable is None or variable["type"] != "IDENTIFIER":
+                return True, error_at(
+                    tokens,
+                    "Expected a loop variable after YR.",
+                    variable
+                )
+
+            position += 1
+
+        following = token_at(tokens, position)
+
+        # Optional condition.
+        if (
+            following is not None
+            and name_of(following) in {"TIL", "WILE"}
+        ):
+            position, error = parse_expression(
+                tokens, position + 1, declared
+            )
+
+            if error:
+                return True, error
+
+        error = check_line_end(tokens, position)
+
+        if not error:
+            block_stack.append({
+                "kind": "loop",
+                "token": first,
+                "label": label["lexeme"]
+            })
+
+        return True, error
+
+    if keyword == "IM OUTTA YR":
+        label = token_at(tokens, 1)
+
+        if label is None or label["type"] != "IDENTIFIER":
+            return True, error_at(
+                tokens,
+                "Expected a closing loop label.",
+                label
+            )
+
+        error = check_line_end(tokens, 2)
+
+        if error:
+            return True, error
+
+        if not block_stack or block_stack[-1]["kind"] != "loop":
+            return True, error_at(
+                tokens,
+                "Unexpected IM OUTTA YR: no open loop "
+                "at this nesting level.",
+                first
+            )
+
+        block = block_stack[-1]
+
+        if label["lexeme"] != block["label"]:
+            return True, error_at(
+                tokens,
+                f"Loop label '{label['lexeme']}' does not "
+                f"match '{block['label']}'.",
+                label
+            )
+
+        block_stack.pop()
         return True, None
 
     return False, None
@@ -209,6 +319,14 @@ def check_block_line(tokens, declared, block_stack):
             )
 
         block = block_stack[-1]
+
+        if block["kind"] not in {"if", "switch"}:
+            return True, error_at(
+                tokens,
+                "OIC cannot close a loop. "
+                "Expected IM OUTTA YR followed by its label.",
+                first
+            )
 
         if block["kind"] == "if" and block["phase"] == "start":
             return True, error_at(
@@ -247,4 +365,9 @@ def check_block_line(tokens, declared, block_stack):
     if handled:
         return handled, error
 
-    return check_switch_line(tokens, block_stack)
+    handled, error = check_switch_line(tokens, block_stack)
+
+    if handled:
+        return handled, error
+
+    return check_loop_line(tokens, declared, block_stack)
