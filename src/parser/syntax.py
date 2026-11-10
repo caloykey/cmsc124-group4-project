@@ -156,7 +156,7 @@ COMPARISON_OPERATORS = {
     "DIFFRINT",
 }
 
-BINARY_OPERATORS = ARITHMETIC_OPERATORS | BOOLEAN_OPERATORS
+BINARY_OPERATORS = ARITHMETIC_OPERATORS | BOOLEAN_OPERATORS | COMPARISON_OPERATORS
 
 LITERAL_TYPES = {"NUMBR", "NUMBAR", "YARN", "TROOF"}
 
@@ -271,6 +271,41 @@ def parse_expression(tokens, position, declared, in_variadic=False):
 
             position, error = parse_expression(
                 tokens, position, declared, True
+            )
+
+            if error:
+                return position, error
+
+    if name_of(token) == "SMOOSH":
+        # Require the first operand.
+        position, error = parse_expression(
+            tokens, position, declared, in_variadic
+        )
+
+        if error:
+            return position, error
+
+        while True:
+            following = token_at(tokens, position)
+
+            # End of line can terminate SMOOSH.
+            if following is None:
+                return position, None
+
+            if name_of(following) == "MKAY":
+                return position + 1, None
+
+            if name_of(following) != "AN":
+                return position, error_at(
+                    tokens,
+                    "Expected AN or MKAY after a SMOOSH operand.",
+                    following
+                )
+
+            position += 1
+
+            position, error = parse_expression(
+                tokens, position, declared, in_variadic
             )
 
             if error:
@@ -426,7 +461,9 @@ def check_statement(tokens, declared):
     if keyword in STATEMENTS:
         return STATEMENTS[keyword](tokens, declared)
 
-    if keyword in BINARY_OPERATORS or keyword == "NOT" or keyword in VARIADIC_BOOLEAN_OPERATORS:
+    if (keyword in BINARY_OPERATORS 
+    or keyword in {"NOT","SMOOSH"} 
+    or keyword in VARIADIC_BOOLEAN_OPERATORS):
         return parse_expression_statement(tokens, declared)
 
     if first["type"] == "IDENTIFIER":
