@@ -143,7 +143,12 @@ def create_gui():
 
     # Buttons.
     button_frame = ttk.Frame(left_panel)
-    button_frame.pack(fill=tk.X, padx=12, pady=5)
+    button_frame.pack(
+    fill=tk.X,
+    padx=12,
+    pady=(5, 8),
+    before=editor_frame
+    )
 
     ttk.Button(
         button_frame,
