@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, font as tkfont, filedialog, messagebox
+from tkinter import ttk, font as tkfont, filedialog, messagebox, simpledialog
 from lexer.lexer import tokenize
 from errors import format_error
 from parser.syntax import check_syntax
@@ -119,6 +119,19 @@ def write_console(text):
     console_output.insert(tk.END, text)
     console_output.see(tk.END)
     console_output.config(state=tk.DISABLED)
+
+
+def request_input(variable_name):
+    value = simpledialog.askstring(
+        "LOLCODE Input",
+        f"Enter a value for {variable_name}:",
+        parent=code_editor.winfo_toplevel()
+    )
+
+    if value is not None:
+        write_console(f"> {value}\n")
+
+    return value
 
 
 def create_gui():
@@ -359,13 +372,13 @@ def create_gui():
     error_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
     console_output = tk.Text(
-    console_frame,
-    height=8,
-    wrap=tk.WORD,
-    font=(code_font, 11),
-    padx=12,
-    pady=10,
-    state=tk.DISABLED
+        console_frame,
+        height=8,
+        wrap=tk.WORD,
+        font=(code_font, 11),
+        padx=12,
+        pady=10,
+        state=tk.DISABLED
     )
 
     console_scroll = ttk.Scrollbar(
