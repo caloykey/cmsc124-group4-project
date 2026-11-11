@@ -1,6 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
-
+from tkinter import ttk, font as tkfont
 from lexer.lexer import tokenize
 from errors import format_error
 from parser.syntax import check_syntax
@@ -91,13 +90,37 @@ def create_gui():
     root.geometry("1000x750")
     root.minsize(700, 500)
 
+    # Interface font.
+    default_font = tkfont.nametofont("TkDefaultFont")
+    default_font.configure(family="Segoe UI", size=10)
+
+    # Use an installed monospace font.
+    available_fonts = set(tkfont.families())
+    code_font = next(
+        (
+            name for name in ("Cascadia Code", "Consolas", "DejaVu Sans Mono")
+            if name in available_fonts
+        ),
+        "TkFixedFont"
+    )
+
+    style = ttk.Style(root)
+
+    style.configure("TLabel", font=("Segoe UI", 10))
+    style.configure("TButton", font=("Segoe UI", 10), padding=(10, 6))
+    style.configure("Treeview", font=("Segoe UI", 10), rowheight=28)
+    style.configure(
+        "Treeview.Heading",
+        font=("Segoe UI", 10, "bold")
+    )
+
     # Main heading.
     heading = ttk.Label(
         root,
-        text="LOLCODE INTERPRETER",
-        font=("Arial", 18, "bold")
+        text="LOLCODE Interpreter",
+        font=("Segoe UI", 20, "bold")
     )
-    heading.pack(pady=10)
+    heading.pack(anchor="w", padx=24, pady=(18, 16))
 
     # Resizable left and right panels.
     workspace = ttk.Panedwindow(root, orient=tk.HORIZONTAL)
@@ -118,7 +141,7 @@ def create_gui():
     ttk.Label(
         left_panel,
         text="Source Code",
-        font=("Arial", 11, "bold")
+        font=("Segoe UI", 11, "bold")
     ).pack(anchor="w", padx=12)
 
     editor_frame = ttk.Frame(left_panel)
@@ -128,7 +151,9 @@ def create_gui():
         editor_frame,
         height=6,
         wrap=tk.NONE,
-        font=("Consolas", 11),
+        font=(code_font, 11),
+        padx=12,
+        pady=10,
         undo=True
     )
     editor_scroll = ttk.Scrollbar(
@@ -144,10 +169,10 @@ def create_gui():
     # Buttons.
     button_frame = ttk.Frame(left_panel)
     button_frame.pack(
-    fill=tk.X,
-    padx=12,
-    pady=(5, 8),
-    before=editor_frame
+        fill=tk.X,
+        padx=12,
+        pady=(5, 8),
+        before=editor_frame
     )
 
     ttk.Button(
@@ -172,7 +197,7 @@ def create_gui():
     ttk.Label(
         right_panel,
         text="Tokens",
-        font=("Arial", 11, "bold")
+        font=("Segoe UI", 11, "bold")
     ).grid(row=0, column=0, sticky="w", padx=(12, 0), pady=(0, 5))
 
     table_frame = ttk.Frame(right_panel)
@@ -214,11 +239,10 @@ def create_gui():
     table_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
     # Error output section.
-    # Error output section.
     ttk.Label(
         right_panel,
         text="Errors",
-        font=("Arial", 11, "bold")
+        font=("Segoe UI", 11, "bold")
     ).grid(row=2, column=0, sticky="w", padx=(12, 0), pady=(0, 5))
 
     error_frame = ttk.Frame(right_panel)
@@ -233,7 +257,9 @@ def create_gui():
         error_frame,
         height=8,
         wrap=tk.WORD,
-        font=("Consolas", 10),
+        font=(code_font, 11),
+        padx=12,
+        pady=10,
         foreground="red",
         state=tk.DISABLED
     )
