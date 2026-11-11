@@ -67,7 +67,7 @@ def run_analysis():
     error_output.config(state=tk.DISABLED)
 
 def load_sample():
-    code_editor.delete("1.0", tk.END)
+    clear_all()
     code_editor.insert("1.0", SAMPLE_CODE)
 
 
