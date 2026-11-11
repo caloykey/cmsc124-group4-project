@@ -1,4 +1,3 @@
-
 import tkinter as tk
 from tkinter import ttk
 
@@ -100,19 +99,34 @@ def create_gui():
     )
     heading.pack(pady=10)
 
+    # Resizable left and right panels.
+    workspace = ttk.Panedwindow(root, orient=tk.HORIZONTAL)
+    workspace.pack(fill=tk.BOTH, expand=True, padx=12, pady=(0, 12))
+
+    left_panel = ttk.Frame(workspace)
+    right_panel = ttk.Frame(workspace)
+
+    workspace.add(left_panel, weight=1)
+    workspace.add(right_panel, weight=1)
+
+    # Right panel: tokens above errors.
+    right_panel.columnconfigure(0, weight=1)
+    right_panel.rowconfigure(1, weight=3)
+    right_panel.rowconfigure(3, weight=2)
+
     # Source code section.
     ttk.Label(
-        root,
+        left_panel,
         text="Source Code",
         font=("Arial", 11, "bold")
     ).pack(anchor="w", padx=12)
 
-    editor_frame = ttk.Frame(root)
-    editor_frame.pack(fill=tk.BOTH, expand=True, padx=12, pady=5)
+    editor_frame = ttk.Frame(left_panel)
+    editor_frame.pack(fill=tk.BOTH, expand=True, padx=12, pady=(0,5))
 
     code_editor = tk.Text(
         editor_frame,
-        height=10,
+        height=6,
         wrap=tk.NONE,
         font=("Consolas", 11),
         undo=True
@@ -128,7 +142,7 @@ def create_gui():
     editor_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
     # Buttons.
-    button_frame = ttk.Frame(root)
+    button_frame = ttk.Frame(left_panel)
     button_frame.pack(fill=tk.X, padx=12, pady=5)
 
     ttk.Button(
@@ -151,13 +165,19 @@ def create_gui():
 
     # Token results table.
     ttk.Label(
-        root,
+        right_panel,
         text="Tokens",
         font=("Arial", 11, "bold")
-    ).pack(anchor="w", padx=12, pady=(8, 2))
+    ).grid(row=0, column=0, sticky="w", padx=(12, 0), pady=(0, 5))
 
-    table_frame = ttk.Frame(root)
-    table_frame.pack(fill=tk.BOTH, expand=True, padx=12, pady=5)
+    table_frame = ttk.Frame(right_panel)
+    table_frame.grid(
+        row=1,
+        column=0,
+        sticky="nsew",
+        padx=(12, 0),
+        pady=(0, 10)
+    )
 
     columns = ("type", "lexeme", "line", "column")
 
@@ -173,10 +193,10 @@ def create_gui():
     token_table.heading("line", text="Line")
     token_table.heading("column", text="Column")
 
-    token_table.column("type", width=150, anchor=tk.W)
-    token_table.column("lexeme", width=400, anchor=tk.W)
-    token_table.column("line", width=70, anchor=tk.CENTER)
-    token_table.column("column", width=80, anchor=tk.CENTER)
+    token_table.column("type", width=130, anchor=tk.W)
+    token_table.column("lexeme", width=200, anchor=tk.W)
+    token_table.column("line", width=50, stretch=False, anchor=tk.CENTER)
+    token_table.column("column", width=65, stretch=False, anchor=tk.CENTER)
 
     table_scroll = ttk.Scrollbar(
         table_frame,
@@ -189,21 +209,39 @@ def create_gui():
     table_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
     # Error output section.
+    # Error output section.
     ttk.Label(
-        root,
+        right_panel,
         text="Errors",
         font=("Arial", 11, "bold")
-    ).pack(anchor="w", padx=12, pady=(8, 2))
+    ).grid(row=2, column=0, sticky="w", padx=(12, 0), pady=(0, 5))
+
+    error_frame = ttk.Frame(right_panel)
+    error_frame.grid(
+        row=3,
+        column=0,
+        sticky="nsew",
+        padx=(12, 0)
+    )
 
     error_output = tk.Text(
-        root,
-        height=5,
+        error_frame,
+        height=8,
         wrap=tk.WORD,
         font=("Consolas", 10),
         foreground="red",
         state=tk.DISABLED
     )
-    error_output.pack(fill=tk.X, padx=12, pady=(0, 12))
+
+    error_scroll = ttk.Scrollbar(
+        error_frame,
+        orient=tk.VERTICAL,
+        command=error_output.yview
+    )
+    error_output.configure(yscrollcommand=error_scroll.set)
+
+    error_output.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    error_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
     load_sample()
     root.mainloop()
