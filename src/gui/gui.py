@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, font as tkfont
+from tkinter import ttk, font as tkfont, filedialog, messagebox
 from lexer.lexer import tokenize
 from errors import format_error
 from parser.syntax import check_syntax
@@ -80,6 +80,33 @@ def clear_all():
     error_output.config(state=tk.NORMAL)
     error_output.delete("1.0", tk.END)
     error_output.config(state=tk.DISABLED)
+
+
+def open_file():
+    file_path = filedialog.askopenfilename(
+        title="Open LOLCODE File",
+        filetypes=[
+            ("LOLCODE Files", "*.lol"),
+            ("All Files", "*.*")
+        ]
+    )
+
+    if not file_path:
+        return
+
+    try:
+        with open(file_path, "r", encoding="utf-8-sig") as file:
+            source = file.read()
+    except (OSError, UnicodeError) as error:
+        messagebox.showerror(
+            "Unable to Open File",
+            str(error)
+        )
+        return
+
+    # Clear the previous source and analysis results.
+    clear_all()
+    code_editor.insert("1.0", source)
 
 
 def create_gui():
@@ -174,6 +201,12 @@ def create_gui():
         pady=(5, 8),
         before=editor_frame
     )
+
+    ttk.Button(
+        button_frame,
+        text="Open File",
+        command=open_file
+    ).pack(side=tk.LEFT, padx=(0, 5))
 
     ttk.Button(
         button_frame,
