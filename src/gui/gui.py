@@ -88,14 +88,14 @@ def create_gui():
     global code_editor, token_table, error_output
 
     root = tk.Tk()
-    root.title("LOLCODE Lexical & Syntax Analyzer")
+    root.title("LOLCODE INTERPRETER")
     root.geometry("1000x750")
     root.minsize(700, 500)
 
     # Main heading.
     heading = ttk.Label(
         root,
-        text="LOLCODE Lexical & Syntax Analyzer",
+        text="LOLCODE INTERPRETER",
         font=("Arial", 18, "bold")
     )
     heading.pack(pady=10)
