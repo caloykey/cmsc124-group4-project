@@ -83,6 +83,9 @@ def clear_all():
     error_output.config(state=tk.NORMAL)
     error_output.delete("1.0", tk.END)
     error_output.config(state=tk.DISABLED)
+    console_output.config(state=tk.NORMAL)
+    console_output.delete("1.0", tk.END)
+    console_output.config(state=tk.DISABLED)
 
 
 def open_file():
@@ -111,9 +114,15 @@ def open_file():
     clear_all()
     code_editor.insert("1.0", source)
 
+def write_console(text):
+    console_output.config(state=tk.NORMAL)
+    console_output.insert(tk.END, text)
+    console_output.see(tk.END)
+    console_output.config(state=tk.DISABLED)
+
 
 def create_gui():
-    global code_editor, token_table, error_output, symbol_table
+    global code_editor, token_table, error_output, symbol_table, console_output
 
     root = tk.Tk()
     root.title("LOLCODE INTERPRETER")
@@ -307,20 +316,26 @@ def create_gui():
     symbol_table.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     symbol_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
-    # Error output section.
+    # Program Output section.
     ttk.Label(
         right_panel,
-        text="Errors",
+        text="Program Output",
         font=("Segoe UI", 11, "bold")
     ).grid(row=2, column=0, sticky="w", padx=(12, 0), pady=(0, 5))
 
-    error_frame = ttk.Frame(right_panel)
-    error_frame.grid(
+    output_notebook = ttk.Notebook(right_panel)
+    output_notebook.grid(
         row=3,
         column=0,
         sticky="nsew",
         padx=(12, 0)
     )
+
+    error_frame = ttk.Frame(output_notebook)
+    console_frame = ttk.Frame(output_notebook)
+
+    output_notebook.add(error_frame, text="Errors")
+    output_notebook.add(console_frame, text="Console")
 
     error_output = tk.Text(
         error_frame,
@@ -342,6 +357,27 @@ def create_gui():
 
     error_output.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     error_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+    console_output = tk.Text(
+    console_frame,
+    height=8,
+    wrap=tk.WORD,
+    font=(code_font, 11),
+    padx=12,
+    pady=10,
+    state=tk.DISABLED
+    )
+
+    console_scroll = ttk.Scrollbar(
+        console_frame,
+        orient=tk.VERTICAL,
+        command=console_output.yview
+    )
+    console_output.configure(yscrollcommand=console_scroll.set)
+
+    console_output.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    console_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
 
     load_sample()
     root.mainloop()
