@@ -77,6 +77,9 @@ def clear_all():
     for item in token_table.get_children():
         token_table.delete(item)
 
+    for item in symbol_table.get_children():
+        symbol_table.delete(item)
+
     error_output.config(state=tk.NORMAL)
     error_output.delete("1.0", tk.END)
     error_output.config(state=tk.DISABLED)
@@ -110,7 +113,7 @@ def open_file():
 
 
 def create_gui():
-    global code_editor, token_table, error_output
+    global code_editor, token_table, error_output, symbol_table
 
     root = tk.Tk()
     root.title("LOLCODE INTERPRETER")
@@ -226,21 +229,26 @@ def create_gui():
         command=clear_all
     ).pack(side=tk.LEFT, padx=5)
 
-    # Token results table.
     ttk.Label(
         right_panel,
-        text="Tokens",
+        text="Analysis Results",
         font=("Segoe UI", 11, "bold")
     ).grid(row=0, column=0, sticky="w", padx=(12, 0), pady=(0, 5))
 
-    table_frame = ttk.Frame(right_panel)
-    table_frame.grid(
+    results_notebook = ttk.Notebook(right_panel)
+    results_notebook.grid(
         row=1,
         column=0,
         sticky="nsew",
         padx=(12, 0),
         pady=(0, 10)
     )
+
+    table_frame = ttk.Frame(results_notebook)
+    symbol_frame = ttk.Frame(results_notebook)
+
+    results_notebook.add(table_frame, text="Tokens")
+    results_notebook.add(symbol_frame, text="Symbol Table")
 
     columns = ("type", "lexeme", "line", "column")
 
@@ -270,6 +278,34 @@ def create_gui():
 
     token_table.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     table_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+    # Symbol table: populated when semantic execution is connected.
+    symbol_columns = ("identifier", "type", "value")
+
+    symbol_table = ttk.Treeview(
+        symbol_frame,
+        columns=symbol_columns,
+        show="headings",
+        height=10
+    )
+
+    symbol_table.heading("identifier", text="Identifier")
+    symbol_table.heading("type", text="Type")
+    symbol_table.heading("value", text="Value")
+
+    symbol_table.column("identifier", width=150, anchor=tk.W)
+    symbol_table.column("type", width=100, anchor=tk.W)
+    symbol_table.column("value", width=200, anchor=tk.W)
+
+    symbol_scroll = ttk.Scrollbar(
+        symbol_frame,
+        orient=tk.VERTICAL,
+        command=symbol_table.yview
+    )
+    symbol_table.configure(yscrollcommand=symbol_scroll.set)
+
+    symbol_table.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    symbol_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
     # Error output section.
     ttk.Label(
