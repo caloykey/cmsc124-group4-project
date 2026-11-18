@@ -14,7 +14,7 @@ from .expressions import (
 )
 
 def parse_declaration(tokens, declared):
-    """I HAS A <variable> [ITZ <expression>]"""
+    #I HAS A <variable> [ITZ <expression>]
 
     name_token = token_at(tokens, 1)
 
@@ -47,30 +47,35 @@ def parse_declaration(tokens, declared):
 
     return check_line_end(tokens, position), new_declared
 
+
 def parse_visible(tokens, declared):
-    """VISIBLE <expression> [<expression> ...] [!]"""
+    #VISIBLE <expression> [+ <expression> ...] [!]
 
-    position = 1  # skip VISIBLE
+    position = 1  # Skip VISIBLE
 
-    # At least one value
+    # Parse the first expression.
     position, error = parse_expression(tokens, position, declared)
+
     if error:
         return error, declared
 
-    # More values, until the line ends or a "!" is reached
-    while position < len(tokens) and tokens[position]["lexeme"] != "!":
+    # Additional expressions must be separated by +.
+    while position < len(tokens) and name_of(tokens[position]) == "+":
+        position += 1
+
         position, error = parse_expression(tokens, position, declared)
+
         if error:
             return error, declared
 
-    # Optional "!" must be the last token
-    if position < len(tokens):
+    # Optional ! must appear at the end.
+    if position < len(tokens) and name_of(tokens[position]) == "!":
         position += 1
 
     return check_line_end(tokens, position), declared
 
 def parse_gimmeh(tokens, declared):
-    """GIMMEH <variable>"""
+    #GIMMEH <variable>
 
     name_token = token_at(tokens, 1)
 
@@ -82,7 +87,7 @@ def parse_gimmeh(tokens, declared):
     return check_line_end(tokens, 2), declared
 
 def parse_expression_statement(tokens, declared):
-    """A lone expression such as SUM OF 1 AN 2 (its result goes to IT)."""
+    #A lone expression such as SUM OF 1 AN 2 (its result goes to IT).
 
     position, error = parse_expression(tokens, 0, declared)
     if error:
@@ -91,7 +96,7 @@ def parse_expression_statement(tokens, declared):
     return check_line_end(tokens, position), declared
 
 def parse_assignment(tokens, declared):
-    """<variable> R <expression>"""
+    #<variable> R <expression>
 
     operator = token_at(tokens, 1)
 
@@ -116,7 +121,7 @@ STATEMENTS = {
 }
 
 def parse_recast(tokens, declared):
-    """<variable> IS NOW A <type>"""
+    #<variable> IS NOW A <type>
 
     type_token = token_at(tokens, 2)
 
@@ -135,7 +140,7 @@ def parse_recast(tokens, declared):
     return check_line_end(tokens, 3), declared
 
 def check_statement(tokens, declared):
-    """Check one line. Returns (error_or_None, declared_after)."""
+    #Check one line. Returns (error_or_None, declared_after).
 
     first = tokens[0]
     keyword = name_of(first)
