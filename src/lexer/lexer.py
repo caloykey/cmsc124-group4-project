@@ -84,7 +84,7 @@ def is_word_character(character):
 
 
 def match_keyword(line, position):
-    """Return a keyword and its ending position if one matches."""
+    #Return a keyword and its ending position if one matches.
 
     remaining = line[position:]
 
@@ -116,13 +116,11 @@ def match_keyword(line, position):
 
 
 def tokenize(source):
-    """
-    Convert LOLCODE source code into tokens.
+    #Convert LOLCODE source code into tokens.
 
-    Returns:
-        tokens: a list of token dictionaries
-        errors: a list of error dictionaries
-    """
+    #Returns:
+    #    tokens: a list of token dictionaries
+    #   errors: a list of error dictionaries
 
     tokens = []
     errors = []
@@ -247,7 +245,7 @@ def tokenize(source):
                 position = number_match.end()
                 continue
 
-            if character == "!":
+            if character in {"!", "+"}:
                 tokens.append(
                     create_token(
                         "KEYWORD",
