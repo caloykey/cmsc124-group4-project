@@ -179,6 +179,7 @@ def check_statements(tokens):
     inside_declarations = False
     declaration_block_seen = False
     opening_token = None
+    body_started = False
 
     for line_tokens in group_by_line(split_body(tokens)):
         first = line_tokens[0]
@@ -186,7 +187,7 @@ def check_statements(tokens):
 
         if keyword == "HAI":
             continue
-
+        
         if keyword == "WAZZUP":
 
             if block_stack:
@@ -205,6 +206,12 @@ def check_statements(tokens):
                 errors.append(error_at(
                     line_tokens, "Only one declaration block is allowed.", first
                 ))
+            elif body_started:
+                errors.append(error_at(
+                    line_tokens,
+                    "WAZZUP must appear before other statements.",
+                    first
+                ))
             else:
                 inside_declarations = True
                 declaration_block_seen = True
@@ -213,6 +220,7 @@ def check_statements(tokens):
             error = check_line_end(line_tokens, 1)
             if error:
                 errors.append(error)
+
             continue
 
         if keyword == "BUHBYE":
@@ -243,6 +251,8 @@ def check_statements(tokens):
                 first
             ))
             continue
+
+        body_started = True
 
         handled, error = check_block_line(
             line_tokens, declared, block_stack
