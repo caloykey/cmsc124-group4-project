@@ -5,126 +5,125 @@ from .blocks import check_block_line
 
 
 def check_syntax(tokens):
-    """
-    Check the syntax of a token list.
+    errors = check_program_structure(tokens)
 
-    Returns a list of error dictionaries (empty if the syntax is valid).
-    Each rule is added as its own check function so we can grow this
-    one keyword at a time.
-    """
+    hai_index = next(
+        (i for i, token in enumerate(tokens)
+         if token["lexeme"] == "HAI"),
+        None
+    )
 
-    errors = []
+    if hai_index is None:
+        return errors
 
-    # Step 1: HAI ... KTHXBYE
-    errors.extend(check_program_structure(tokens))
+    end_index = next(
+        (i for i in range(hai_index + 1, len(tokens))
+         if tokens[i]["lexeme"] == "KTHXBYE"),
+        None
+    )
 
-    # Step 2: statements between HAI and KTHXBYE
-    # (VISIBLE, I HAS A, GIMMEH, arithmetic)
-    errors.extend(check_statements(tokens))
+    if end_index is None:
+        return errors
+
+    # Functions before HAI.
+    errors.extend(check_external_functions(tokens[:hai_index]))
+
+    # Main program.
+    errors.extend(
+        check_statements(tokens[hai_index:end_index + 1])
+    )
+
+    # Functions after KTHXBYE.
+    errors.extend(
+        check_external_functions(tokens[end_index + 1:])
+    )
 
     return errors
 
 
 def check_program_structure(tokens):
-    """A program must be: HAI [version] <body> KTHXBYE"""
-
     errors = []
 
-    # Nothing to check against (blank or comment-only source)
     if not tokens:
-        errors.append(
-            create_error("Empty program: expected HAI.", 1, 1)
-        )
+        return [create_error("Empty program: expected HAI.", 1, 1)]
+
+    hai_indexes = [
+        i for i, token in enumerate(tokens)
+        if token["lexeme"] == "HAI"
+    ]
+
+    if not hai_indexes:
+        errors.append(error_at(
+            tokens, "Missing HAI.", tokens[0]
+        ))
         return errors
 
-    # ---- HAI ----
-    first = tokens[0]
+    hai_index = hai_indexes[0]
+    hai_token = tokens[hai_index]
 
-    if first["lexeme"] != "HAI":
-        errors.append(
-            create_error(
-                f"Program must start with HAI, found '{first['lexeme']}'.",
-                first["line"],
-                first["column"]
-            )
-        )
-    else:
-        header = []
+    # Check HAI and its optional version number.
+    header = [
+        token for token in tokens[hai_index:]
+        if token["line"] == hai_token["line"]
+    ]
 
-        for token in tokens:
-            if token["line"] != first["line"]:
-                break
-            header.append(token)
+    position = 1
 
-        position = 1
+    if (
+        position < len(header)
+        and header[position]["type"] == "NUMBAR"
+        and not header[position]["lexeme"].startswith("-")
+    ):
+        position += 1
 
-        # Optional version number after HAI.
-        if (
-            position < len(header)
-            and header[position]["type"] == "NUMBAR"
-            and not header[position]["lexeme"].startswith("-")
-        ):
-            position += 1
+    error = check_line_end(header, position)
+    if error:
+        errors.append(error)
 
-        error = check_line_end(header, position)
+    # Only one HAI is allowed.
+    for index in hai_indexes[1:]:
+        errors.append(error_at(
+            tokens,
+            "Unexpected HAI: only one program is allowed.",
+            tokens[index]
+        ))
 
-        if error:
-            errors.append(error)
-
-    # Any other HAI later in the program is a mistake
-    for token in tokens[1:]:
-        if token["lexeme"] == "HAI":
-            errors.append(
-                create_error(
-                    "Unexpected HAI: it can only appear once, "
-                    "at the start of the program.",
-                    token["line"],
-                    token["column"]
-                )
-            )
-
-    # ---- KTHXBYE ----
+    # Find the closing KTHXBYE after HAI.
     end_indexes = [
-        index for index, token in enumerate(tokens)
+        i for i, token in enumerate(tokens)
         if token["lexeme"] == "KTHXBYE"
+        and i > hai_index
     ]
 
     if not end_indexes:
-        last = tokens[-1]
-        errors.append(
-            create_error(
-                "Missing KTHXBYE at the end of the program.",
-                last["line"],
-                last["column"] + len(last["lexeme"])
-            )
-        )
+        errors.append(error_at(
+            tokens, "Missing KTHXBYE at the end of the program."
+        ))
         return errors
 
     end_index = end_indexes[0]
     end_token = tokens[end_index]
 
-    # KTHXBYE must be alone on its line
-    if end_index > 0 and tokens[end_index - 1]["line"] == end_token["line"]:
-        errors.append(
-            create_error(
-                "KTHXBYE must be alone on its line.",
-                end_token["line"],
-                end_token["column"]
-            )
-        )
+    if (
+        end_index > 0
+        and tokens[end_index - 1]["line"] == end_token["line"]
+    ):
+        errors.append(error_at(
+            tokens,
+            "KTHXBYE must be alone on its line.",
+            end_token
+        ))
 
-    # Nothing is allowed after the first KTHXBYE
-    if end_index < len(tokens) - 1:
-        extra = tokens[end_index + 1]
-        errors.append(
-            create_error(
-                "Unexpected code after KTHXBYE.",
-                extra["line"],
-                extra["column"]
-            )
-        )
+    # An additional program delimiter is invalid.
+    for index in end_indexes[1:]:
+        errors.append(error_at(
+            tokens,
+            "Unexpected additional KTHXBYE.",
+            tokens[index]
+        ))
 
     return errors
+
 
 # ---------------------------------------------------------------------------
 # Statements: VISIBLE, I HAS A, GIMMEH and arithmetic expressions
@@ -170,6 +169,36 @@ def group_by_line(tokens):
             lines.append([token])
 
     return lines
+
+
+def check_external_functions(tokens):
+    """Only allow function definitions outside the main program."""
+
+    if not tokens:
+        return []
+
+    errors = check_statements(tokens)
+    inside_function = False
+
+    for line_tokens in group_by_line(tokens):
+        first = line_tokens[0]
+        keyword = name_of(first)
+
+        if keyword == "HOW IZ I":
+            inside_function = True
+
+        elif keyword == "IF U SAY SO":
+            inside_function = False
+
+        elif not inside_function:
+            errors.append(error_at(
+                line_tokens,
+                "Only function definitions are allowed "
+                "outside HAI and KTHXBYE.",
+                first
+            ))
+
+    return errors
 
 
 def check_statements(tokens):
