@@ -31,10 +31,12 @@ BINARY_OPERATORS = ARITHMETIC_OPERATORS | BOOLEAN_OPERATORS | COMPARISON_OPERATO
 LITERAL_TYPES = {"NUMBR", "NUMBAR", "YARN", "TROOF"}
 TYPE_NAMES = {"NOOB", "NUMBR", "NUMBAR", "YARN", "TROOF"}
 
-def parse_expression(tokens, position, declared, in_variadic=False):
+
+def parse_expression(tokens, position, declared, in_variadic=False, nested=False):
     """
-    expression := NUMBR | NUMBAR | YARN | TROOF | variable
-                | <arithmetic operator> expression AN expression
+    Validate LOLCODE expressions, including nested operations.
+
+    Returns (next_position, error).
     """
 
     token = token_at(tokens, position)
@@ -44,9 +46,17 @@ def parse_expression(tokens, position, declared, in_variadic=False):
             tokens, "Expected a value, variable, or expression."
         )
 
+    # SMOOSH cannot be nested inside another expression.
+    if name_of(token) == "SMOOSH" and nested:
+        return position, error_at(
+            tokens,
+            "SMOOSH cannot be nested inside another expression.",
+            token
+        )
+
     position += 1
 
-    # Literals: 12, 3.14, "text", WIN, FAIL
+    # Literals: 12, 3.14, "text", WIN, FAIL, NOOB
     if (
         token["type"] in LITERAL_TYPES
         or (
@@ -56,13 +66,17 @@ def parse_expression(tokens, position, declared, in_variadic=False):
     ):
         return position, None
 
-    # Variable existence and scope are checked by semantic analysis.
+    # Variable existence and scope belong to semantic analysis.
     if token["type"] == "IDENTIFIER":
         return position, None
 
+    # Unary boolean operator
     if name_of(token) == "NOT":
-        return parse_expression(tokens, position, declared, in_variadic)
+        return parse_expression(
+            tokens, position, declared, in_variadic, True
+        )
 
+    # ALL OF / ANY OF
     if name_of(token) in VARIADIC_BOOLEAN_OPERATORS:
         operator = name_of(token)
 
@@ -74,9 +88,9 @@ def parse_expression(tokens, position, declared, in_variadic=False):
                 token
             )
 
-        # Read the first operand.
+        # First operand
         position, error = parse_expression(
-            tokens, position, declared, True
+            tokens, position, declared, True, True
         )
 
         if error:
@@ -103,17 +117,20 @@ def parse_expression(tokens, position, declared, in_variadic=False):
 
             position += 1
 
+            # Additional operand
             position, error = parse_expression(
-                tokens, position, declared, True
+                tokens, position, declared, True, True
             )
 
             if error:
                 return position, error
 
+    # String concatenation
     if name_of(token) == "SMOOSH":
-        # Require the first operand.
+
+        # First operand
         position, error = parse_expression(
-            tokens, position, declared, in_variadic
+            tokens, position, declared, in_variadic, True
         )
 
         if error:
@@ -126,6 +143,7 @@ def parse_expression(tokens, position, declared, in_variadic=False):
             if following is None:
                 return position, None
 
+            # Optional MKAY
             if name_of(following) == "MKAY":
                 return position + 1, None
 
@@ -138,22 +156,24 @@ def parse_expression(tokens, position, declared, in_variadic=False):
 
             position += 1
 
+            # Additional operand
             position, error = parse_expression(
-                tokens, position, declared, in_variadic
+                tokens, position, declared, in_variadic, True
             )
 
             if error:
                 return position, error
 
+    # Explicit typecasting
     if name_of(token) == "MAEK":
         position, error = parse_expression(
-            tokens, position, declared, in_variadic
+            tokens, position, declared, in_variadic, True
         )
 
         if error:
             return position, error
 
-        # A is optional in MAEK expressions.
+        # A is optional.
         following = token_at(tokens, position)
 
         if following is not None and name_of(following) == "A":
@@ -175,6 +195,7 @@ def parse_expression(tokens, position, declared, in_variadic=False):
 
         return position + 1, None
 
+    # Function call
     if name_of(token) == "I IZ":
         function_name = token_at(tokens, position)
 
@@ -191,12 +212,13 @@ def parse_expression(tokens, position, declared, in_variadic=False):
         position += 1
         following = token_at(tokens, position)
 
+        # Optional function arguments
         if following is not None and name_of(following) == "YR":
             position += 1
 
             while True:
                 position, error = parse_expression(
-                    tokens, position, declared, in_variadic
+                    tokens, position, declared, in_variadic, True
                 )
 
                 if error:
@@ -230,25 +252,35 @@ def parse_expression(tokens, position, declared, in_variadic=False):
 
         return position + 1, None
 
-    # SUM OF x AN y  (operands can be nested expressions)
+    # Binary arithmetic, boolean, and comparison operators
     if name_of(token) in BINARY_OPERATORS:
         operator = name_of(token)
 
-        position, error = parse_expression(tokens, position, declared, in_variadic)
+        # First operand
+        position, error = parse_expression(
+            tokens, position, declared, in_variadic, True
+        )
+
         if error:
             return position, error
 
         separator = token_at(tokens, position)
+
         if separator is None or name_of(separator) != "AN":
             return position, error_at(
                 tokens,
                 f"Expected AN between the operands of {operator}.",
                 separator
             )
+
         position += 1
 
-        return parse_expression(tokens, position, declared, in_variadic)
+        # Second operand
+        return parse_expression(
+            tokens, position, declared, in_variadic, True
+        )
 
+    # Unrecognized expression
     return position, error_at(
         tokens,
         f"Expected a value, variable, or expression, "
