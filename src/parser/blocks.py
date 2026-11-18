@@ -208,34 +208,44 @@ def check_loop_line(tokens, declared, block_stack):
         position = 2
         following = token_at(tokens, position)
 
-        # Optional increment/decrement clause.
+
+        # Require an increment or decrement operation.
         if (
-            following is not None
-            and name_of(following) in {"UPPIN", "NERFIN"}
+            following is None
+            or name_of(following) not in {"UPPIN", "NERFIN"}
         ):
-            position += 1
-            separator = token_at(tokens, position)
+            return True, error_at(
+                tokens,
+                "Expected UPPIN or NERFIN after the loop label.",
+                following
+            )
 
-            if separator is None or name_of(separator) != "YR":
-                return True, error_at(
-                    tokens,
-                    "Expected YR after UPPIN or NERFIN.",
-                    separator
-                )
+        position += 1
 
-            position += 1
-            variable = token_at(tokens, position)
+        separator = token_at(tokens, position)
 
-            if variable is None or variable["type"] != "IDENTIFIER":
-                return True, error_at(
-                    tokens,
-                    "Expected a loop variable after YR.",
-                    variable
-                )
+        if separator is None or name_of(separator) != "YR":
+            return True, error_at(
+                tokens,
+                "Expected YR after UPPIN or NERFIN.",
+                separator
+            )
 
-            position += 1
+        position += 1
+
+        variable = token_at(tokens, position)
+
+        if variable is None or variable["type"] != "IDENTIFIER":
+            return True, error_at(
+                tokens,
+                "Expected a loop variable after YR.",
+                variable
+            )
+
+        position += 1
 
         following = token_at(tokens, position)
+
 
         # Optional condition.
         if (
