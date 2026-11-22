@@ -1,4 +1,4 @@
-from .values import make_value, to_boolean, to_number, to_yarn
+from .values import make_value, to_boolean, to_number, to_yarn, cast_value
 
 def evaluate_expression(node, symbols=None):
     if symbols is None:
@@ -63,6 +63,10 @@ def evaluate_expression(node, symbols=None):
             parts.append(to_yarn(value)["value"])
 
         return make_value("YARN", "".join(parts))
+
+    if kind == "cast":
+        value = evaluate_expression(node["expression"], symbols)
+        return cast_value(value, node["target_type"])
 
     if kind == "binary":
         operator = node["operator"]
