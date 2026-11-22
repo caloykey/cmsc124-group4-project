@@ -2,7 +2,7 @@ from .expressions import evaluate_expression
 from .values import make_value
 
 
-def execute_statement(node, symbols):
+def execute_statement(node, symbols, write_output=None):
     kind = node["kind"]
 
     if kind == "declaration":
@@ -35,15 +35,42 @@ def execute_statement(node, symbols):
         symbols["IT"] = value
         return
 
+    if kind == "visible":
+        if write_output is None:
+            raise ValueError("VISIBLE requires an output callback.")
+
+        parts = []
+
+        for expression in node["values"]:
+            value = evaluate_expression(expression, symbols)
+            value_type = value["type"]
+
+            if value_type == "TROOF":
+                text = "WIN" if value["value"] else "FAIL"
+            elif value_type in {"NUMBR", "NUMBAR", "YARN"}:
+                text = str(value["value"])
+            else:
+                raise ValueError(f"Cannot display a {value_type} value.")
+
+            parts.append(text)
+
+        output = "".join(parts)
+
+        if node.get("newline", True):
+            output += "\n"
+
+        write_output(output)
+        return
+
     raise ValueError(f"Unsupported statement kind: {kind}")
 
-def execute_program(program):
+def execute_program(program, write_output=None):
     symbols = {"IT": make_value("NOOB", None)}
     errors = []
 
     for statement in program["body"]:
         try:
-            execute_statement(statement, symbols)
+            execute_statement(statement, symbols, write_output)
         except ValueError as error:
             errors.append({
                 "message": str(error),
