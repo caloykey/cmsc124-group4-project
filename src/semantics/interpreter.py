@@ -1,5 +1,5 @@
 from .expressions import evaluate_expression
-from .values import make_value, to_boolean, to_yarn, cast_value
+from .values import make_value, to_boolean, to_yarn, cast_value, to_number
 
 def execute_statement(node, symbols, write_output=None, read_input=None):
     kind = node["kind"]
@@ -117,8 +117,7 @@ def execute_statement(node, symbols, write_output=None, read_input=None):
         if mode not in {None, "TIL", "WILE"}:
             raise ValueError(f"Unsupported loop condition: {mode}")
 
-        if symbols[name]["type"] not in {"NUMBR", "NUMBAR"}:
-            raise ValueError("Loop variable must currently be NUMBR or NUMBAR.")
+        symbols[name] = to_number(symbols[name])
 
         step = 1 if operation == "UPPIN" else -1
 
@@ -139,10 +138,7 @@ def execute_statement(node, symbols, write_output=None, read_input=None):
                 if signal == "break":
                     return
 
-            value = symbols[name]
-
-            if value["type"] not in {"NUMBR", "NUMBAR"}:
-                raise ValueError("Loop variable must currently be NUMBR or NUMBAR.")
+            value = to_number(symbols[name])
 
             symbols[name] = make_value(
                 value["type"],
