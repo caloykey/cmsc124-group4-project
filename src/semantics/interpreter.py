@@ -1,7 +1,21 @@
 from .expressions import evaluate_expression
 from .values import make_value, to_boolean, to_yarn, cast_value, to_number
 
+
 def execute_statement(node, symbols, write_output=None, read_input=None, call_function=None):
+    try:
+        return execute_statement_body(
+            node, symbols, write_output, read_input, call_function
+        )
+    except ValueError as error:
+        # Preserve the deepest failing statement's location.
+        if not hasattr(error, "line"):
+            error.line = node.get("line", 1)
+            error.column = node.get("column", 1)
+        raise
+
+
+def execute_statement_body(node, symbols, write_output=None, read_input=None, call_function=None):
     kind = node["kind"]
 
     if kind == "declaration":
@@ -295,8 +309,8 @@ def execute_program(program, write_output=None, read_input=None):
         except ValueError as error:
             errors.append({
                 "message": str(error),
-                "line": statement.get("line", 1),
-                "column": statement.get("column", 1),
+                "line": getattr(error, "line", statement.get("line", 1)),
+                "column": getattr(error, "column", statement.get("column", 1)),
             })
             break
 
