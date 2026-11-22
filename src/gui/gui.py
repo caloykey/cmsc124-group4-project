@@ -4,6 +4,7 @@ from lexer.lexer import tokenize
 from errors import format_error
 from parser.syntax import check_syntax
 from semantics.values import to_yarn
+from semantics.interpreter import execute_program
 
 
 def run_analysis():
@@ -92,6 +93,32 @@ def write_console(text):
     console_output.insert(tk.END, text)
     console_output.see(tk.END)
     console_output.config(state=tk.DISABLED)
+
+
+def run_program(program):
+    symbols, errors = execute_program(
+        program,
+        write_console,
+        request_input,
+    )
+
+    update_symbol_table(symbols)
+
+    if errors:
+        message = "Semantic errors:\n\n"
+        message += "\n".join(format_error(error) for error in errors)
+    else:
+        message = "Program finished successfully."
+
+    error_output.config(
+        state=tk.NORMAL,
+        foreground="red" if errors else "green",
+    )
+    error_output.delete("1.0", tk.END)
+    error_output.insert(tk.END, message)
+    error_output.config(state=tk.DISABLED)
+
+    return errors
 
 
 def update_symbol_table(symbols):
