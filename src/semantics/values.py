@@ -2,6 +2,7 @@ import re
 from math import isfinite
 from decimal import Decimal
 
+
 def make_value(value_type, value):
     return {"type": value_type, "value": value}
 
@@ -24,6 +25,7 @@ def to_boolean(value):
 
     raise ValueError(f"Cannot convert {value_type} to TROOF.")
 
+
 def to_number(value):
     value_type = value["type"]
     data = value["value"]
@@ -45,6 +47,7 @@ def to_number(value):
                 return make_value("NUMBAR", number)
 
     raise ValueError(f"Cannot implicitly convert {value_type} value {data!r} to a number.")
+
 
 def to_yarn(value):
     value_type = value["type"]
@@ -69,3 +72,42 @@ def to_yarn(value):
         raise ValueError(f"Cannot implicitly convert {value_type} to YARN.")
 
     return make_value("YARN", text)
+
+
+def cast_value(value, target_type):
+    supported = {"NOOB", "NUMBR", "NUMBAR", "YARN", "TROOF"}
+
+    if target_type not in supported:
+        raise ValueError(f"Unknown type: {target_type}")
+
+    if target_type == "NOOB":
+        return make_value("NOOB", None)
+
+    if target_type == "TROOF":
+        return make_value("TROOF", to_boolean(value))
+
+    if value["type"] == "NOOB":
+        defaults = {
+            "NUMBR": 0,
+            "NUMBAR": 0.0,
+            "YARN": "",
+        }
+        return make_value(target_type, defaults[target_type])
+
+    if target_type == "YARN":
+        return to_yarn(value)
+
+    number = to_number(value)["value"]
+
+    try:
+        if target_type == "NUMBR":
+            return make_value("NUMBR", int(number))
+
+        number = float(number)
+    except (ValueError, OverflowError) as error:
+        raise ValueError(f"Cannot convert this value to {target_type}.") from error
+
+    if not isfinite(number):
+        raise ValueError("Cannot convert this value to a finite NUMBAR.")
+
+    return make_value("NUMBAR", number)
