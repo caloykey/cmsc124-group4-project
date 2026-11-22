@@ -64,6 +64,8 @@ def evaluate_expression(node, symbols=None):
             "BOTH OF",
             "EITHER OF",
             "WON OF",
+            "BOTH SAEM",
+            "DIFFRINT",
         }
 
         if operator not in supported:
@@ -72,8 +74,14 @@ def evaluate_expression(node, symbols=None):
         left = evaluate_expression(node["left"], symbols)
         right = evaluate_expression(node["right"], symbols)
 
-        left = evaluate_expression(node["left"], symbols)
-        right = evaluate_expression(node["right"], symbols)
+        if operator in {"BOTH SAEM", "DIFFRINT"}:
+            equal = (
+                left["type"] == right["type"]
+                and left["value"] == right["value"]
+            )
+
+            result = equal if operator == "BOTH SAEM" else not equal
+            return make_value("TROOF", result)
 
         if operator in {"BOTH OF", "EITHER OF", "WON OF"}:
             left_boolean = to_boolean(left)
