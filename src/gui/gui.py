@@ -5,29 +5,6 @@ from errors import format_error
 from parser.syntax import check_syntax
 from semantics.values import to_yarn
 
-SAMPLE_CODE = '''HAI
-BTW Sample of currently supported syntax
-WAZZUP
-I HAS A name ITZ "Juan Dela Cruz"
-I HAS A age ITZ 18
-BUHBYE
-
-age R SUM OF age AN 1
-VISIBLE SMOOSH "Hello, " AN name MKAY
-VISIBLE MAEK age A YARN
-VISIBLE BOTH OF WIN AN NOT FAIL
-VISIBLE ANY OF FAIL AN WIN MKAY
-
-BOTH SAEM age AN 21
-O RLY?
-YA RLY
-    VISIBLE "Age is twenty-one"
-NO WAI
-    VISIBLE "Age is different"
-OIC
-
-KTHXBYE'''
-
 
 def run_analysis():
     clear_results()
@@ -66,10 +43,6 @@ def run_analysis():
     error_output.delete("1.0", tk.END)
     error_output.insert(tk.END, message)
     error_output.config(state=tk.DISABLED)
-
-def load_sample():
-    clear_all()
-    code_editor.insert("1.0", SAMPLE_CODE)
 
 
 def clear_results():
@@ -258,12 +231,6 @@ def create_gui():
 
     ttk.Button(
         button_frame,
-        text="Load Sample",
-        command=load_sample
-    ).pack(side=tk.LEFT, padx=5)
-
-    ttk.Button(
-        button_frame,
         text="Clear",
         command=clear_all
     ).pack(side=tk.LEFT, padx=5)
@@ -409,5 +376,4 @@ def create_gui():
     console_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
 
-    load_sample()
     root.mainloop()
