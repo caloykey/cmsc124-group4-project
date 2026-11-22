@@ -1,4 +1,4 @@
-from .values import make_value, to_boolean, to_number
+from .values import make_value, to_boolean, to_number, to_yarn
 
 def evaluate_expression(node, symbols=None):
     if symbols is None:
@@ -50,6 +50,19 @@ def evaluate_expression(node, symbols=None):
 
         return make_value("TROOF", result)
 
+    if kind == "smoosh":
+        operands = node["operands"]
+
+        if not operands:
+            raise ValueError("SMOOSH requires at least one operand.")
+
+        parts = []
+
+        for operand in operands:
+            value = evaluate_expression(operand, symbols)
+            parts.append(to_yarn(value)["value"])
+
+        return make_value("YARN", "".join(parts))
 
     if kind == "binary":
         operator = node["operator"]
