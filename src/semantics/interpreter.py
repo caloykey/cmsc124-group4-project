@@ -36,3 +36,20 @@ def execute_statement(node, symbols):
         return
 
     raise ValueError(f"Unsupported statement kind: {kind}")
+
+def execute_program(program):
+    symbols = {"IT": make_value("NOOB", None)}
+    errors = []
+
+    for statement in program["body"]:
+        try:
+            execute_statement(statement, symbols)
+        except ValueError as error:
+            errors.append({
+                "message": str(error),
+                "line": statement.get("line", 1),
+                "column": statement.get("column", 1),
+            })
+            break
+
+    return symbols, errors
