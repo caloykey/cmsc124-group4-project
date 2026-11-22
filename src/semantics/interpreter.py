@@ -20,4 +20,14 @@ def execute_statement(node, symbols):
         symbols[name] = value
         return
 
+    if kind == "assignment":
+        name = node["name"]
+
+        if name not in symbols:
+            raise ValueError(f"Variable '{name}' has not been declared.")
+
+        value = evaluate_expression(node["value"], symbols)
+        symbols[name] = value
+        return
+
     raise ValueError(f"Unsupported statement kind: {kind}")
