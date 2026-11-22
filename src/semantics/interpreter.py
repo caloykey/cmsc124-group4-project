@@ -76,7 +76,40 @@ def execute_statement(node, symbols, write_output=None):
                     break
 
         for statement in selected_body:
-            execute_statement(statement, symbols, write_output)
+            signal = execute_statement(statement, symbols, write_output)
+
+            if signal == "break":
+                return signal
+
+        return
+
+    if kind == "break":
+        return "break"
+
+    if kind == "switch":
+        target = symbols["IT"]
+        matched = False
+
+        for case in node["cases"]:
+            if not matched:
+                case_value = evaluate_expression(case["value"], symbols)
+                matched = (
+                    target["type"] == case_value["type"]
+                    and target["value"] == case_value["value"]
+                )
+
+            if matched:
+                for statement in case["body"]:
+                    signal = execute_statement(statement, symbols, write_output)
+
+                    if signal == "break":
+                        return
+
+        for statement in node.get("default_body", []):
+            signal = execute_statement(statement, symbols, write_output)
+
+            if signal == "break":
+                return
 
         return
 
@@ -88,7 +121,10 @@ def execute_program(program, write_output=None):
 
     for statement in program["body"]:
         try:
-            execute_statement(statement, symbols, write_output)
+            signal = execute_statement(statement, symbols, write_output)
+
+            if signal == "break":
+                raise ValueError("GTFO requires an enclosing switch, loop, or function.")
         except ValueError as error:
             errors.append({
                 "message": str(error),
