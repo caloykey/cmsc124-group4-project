@@ -1,5 +1,4 @@
-from .values import make_value
-
+from .values import make_value, to_boolean
 
 def evaluate_expression(node, symbols=None):
     if symbols is None:
@@ -19,6 +18,14 @@ def evaluate_expression(node, symbols=None):
         value = symbols[name]
         return make_value(value["type"], value["value"])   
     
+    if kind == "unary":
+        operator = node["operator"]
+
+        if operator != "NOT":
+            raise ValueError(f"Unsupported unary operator: {operator}")
+
+        operand = evaluate_expression(node["operand"], symbols)
+        return make_value("TROOF", not to_boolean(operand))
 
     if kind == "binary":
         operator = node["operator"]
