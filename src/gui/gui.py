@@ -128,6 +128,8 @@ def update_symbol_table(symbols):
     for name, value in symbols.items():
         if value["type"] == "NOOB":
             text = "NOOB"
+        elif value["type"] == "NUMBAR":
+            text = str(value["value"])
         else:
             text = to_yarn(value)["value"]
 
