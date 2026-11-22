@@ -1,4 +1,4 @@
-from .values import make_value, to_boolean
+from .values import make_value, to_boolean, to_number
 
 def evaluate_expression(node, symbols=None):
     if symbols is None:
@@ -96,12 +96,8 @@ def evaluate_expression(node, symbols=None):
 
             return make_value("TROOF", result)
 
-        numeric_types = {"NUMBR", "NUMBAR"}
-
-        if left["type"] not in numeric_types or right["type"] not in numeric_types:
-            raise ValueError(
-                f"{operator} currently supports NUMBR and NUMBAR operands."
-            )
+        left = to_number(left)
+        right = to_number(right)
 
         left_value = left["value"]
         right_value = right["value"]
