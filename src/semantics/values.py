@@ -1,5 +1,6 @@
 import re
 from math import isfinite
+from decimal import Decimal
 
 def make_value(value_type, value):
     return {"type": value_type, "value": value}
@@ -44,3 +45,27 @@ def to_number(value):
                 return make_value("NUMBAR", number)
 
     raise ValueError(f"Cannot implicitly convert {value_type} value {data!r} to a number.")
+
+def to_yarn(value):
+    value_type = value["type"]
+    data = value["value"]
+
+    if value_type == "YARN":
+        text = data
+    elif value_type == "TROOF":
+        text = "WIN" if data else "FAIL"
+    elif value_type == "NUMBR":
+        text = str(data)
+    elif value_type == "NUMBAR":
+        if not isfinite(data):
+            raise ValueError("Cannot convert a non-finite NUMBAR to YARN.")
+
+        text = format(Decimal(str(data)), "f")
+        whole, separator, fraction = text.partition(".")
+
+        if separator:
+            text = whole + "." + fraction[:2]
+    else:
+        raise ValueError(f"Cannot implicitly convert {value_type} to YARN.")
+
+    return make_value("YARN", text)
