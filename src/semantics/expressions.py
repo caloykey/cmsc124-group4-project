@@ -1,11 +1,24 @@
 from .values import make_value
 
 
-def evaluate_expression(node):
+def evaluate_expression(node, symbols=None):
+    if symbols is None:
+        symbols = {}
+
     kind = node["kind"]
 
     if kind == "literal":
         return make_value(node["type"], node["value"])
+
+    if kind == "variable":
+        name = node["name"]
+
+        if name not in symbols:
+            raise ValueError(f"Variable '{name}' has not been declared.")
+
+        value = symbols[name]
+        return make_value(value["type"], value["value"])   
+    
 
     if kind == "binary":
         operator = node["operator"]
@@ -22,8 +35,8 @@ def evaluate_expression(node):
         if operator not in supported:
             raise ValueError(f"Unsupported binary operator: {operator}")
 
-        left = evaluate_expression(node["left"])
-        right = evaluate_expression(node["right"])
+        left = evaluate_expression(node["left"], symbols)
+        right = evaluate_expression(node["right"], symbols)
 
         numeric_types = {"NUMBR", "NUMBAR"}
 
