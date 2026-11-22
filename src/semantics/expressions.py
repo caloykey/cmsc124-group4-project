@@ -37,6 +37,9 @@ def evaluate_expression(node, symbols=None):
             "SMALLR OF",
             "QUOSHUNT OF",
             "MOD OF",
+            "BOTH OF",
+            "EITHER OF",
+            "WON OF",
         }
 
         if operator not in supported:
@@ -44,6 +47,33 @@ def evaluate_expression(node, symbols=None):
 
         left = evaluate_expression(node["left"], symbols)
         right = evaluate_expression(node["right"], symbols)
+
+        left = evaluate_expression(node["left"], symbols)
+        right = evaluate_expression(node["right"], symbols)
+
+        if operator in {"BOTH OF", "EITHER OF", "WON OF"}:
+            left_boolean = to_boolean(left)
+            right_boolean = to_boolean(right)
+
+            if operator == "BOTH OF":
+                result = left_boolean and right_boolean
+            elif operator == "EITHER OF":
+                result = left_boolean or right_boolean
+            else:
+                result = left_boolean != right_boolean
+
+            return make_value("TROOF", result)
+
+        numeric_types = {"NUMBR", "NUMBAR"}
+
+        if left["type"] not in numeric_types or right["type"] not in numeric_types:
+            raise ValueError(
+                f"{operator} currently supports NUMBR and NUMBAR operands."
+            )
+
+        left_value = left["value"]
+        right_value = right["value"]
+
 
         numeric_types = {"NUMBR", "NUMBAR"}
 
