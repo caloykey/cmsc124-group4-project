@@ -15,6 +15,7 @@ def evaluate_expression(node):
             "PRODUKT OF",
             "BIGGR OF",
             "SMALLR OF",
+            "QUOSHUNT OF",
         }
 
         if operator not in supported:
@@ -41,9 +42,20 @@ def evaluate_expression(node):
             result = left_value * right_value
         elif operator == "BIGGR OF":
             result = max(left_value, right_value)
-        else:
+        elif operator == "SMALLR OF":
             result = min(left_value, right_value)
+        else:
+            if right_value == 0:
+                raise ValueError("Cannot divide by zero.")
 
+            if left["type"] == "NUMBR" and right["type"] == "NUMBR":
+                result = abs(left_value) // abs(right_value)
+
+                if (left_value < 0) != (right_value < 0):
+                    result = -result
+            else:
+                result = left_value / right_value
+                
         result_type = "NUMBR"
 
         if "NUMBAR" in (left["type"], right["type"]):
