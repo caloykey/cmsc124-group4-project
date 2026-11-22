@@ -113,6 +113,54 @@ def execute_statement(node, symbols, write_output=None):
 
         return
 
+    if kind == "loop":
+        name = node["variable"]
+        operation = node["operation"]
+        mode = node.get("mode")
+
+        if name not in symbols:
+            raise ValueError(f"Variable '{name}' has not been declared.")
+
+        if operation not in {"UPPIN", "NERFIN"}:
+            raise ValueError(f"Unsupported loop operation: {operation}")
+
+        if mode not in {None, "TIL", "WILE"}:
+            raise ValueError(f"Unsupported loop condition: {mode}")
+
+        if symbols[name]["type"] not in {"NUMBR", "NUMBAR"}:
+            raise ValueError("Loop variable must currently be NUMBR or NUMBAR.")
+
+        step = 1 if operation == "UPPIN" else -1
+
+        while True:
+            if mode is not None:
+                condition = evaluate_expression(node["condition"], symbols)
+                condition_true = to_boolean(condition)
+
+                if mode == "TIL" and condition_true:
+                    break
+
+                if mode == "WILE" and not condition_true:
+                    break
+
+            for statement in node["body"]:
+                signal = execute_statement(statement, symbols, write_output)
+
+                if signal == "break":
+                    return
+
+            value = symbols[name]
+
+            if value["type"] not in {"NUMBR", "NUMBAR"}:
+                raise ValueError("Loop variable must currently be NUMBR or NUMBAR.")
+
+            symbols[name] = make_value(
+                value["type"],
+                value["value"] + step,
+            )
+
+        return
+
     raise ValueError(f"Unsupported statement kind: {kind}")
 
 def execute_program(program, write_output=None):
