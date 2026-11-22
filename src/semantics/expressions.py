@@ -119,17 +119,6 @@ def evaluate_expression(node, symbols=None, call_function=None):
         left_value = left["value"]
         right_value = right["value"]
 
-
-        numeric_types = {"NUMBR", "NUMBAR"}
-
-        if left["type"] not in numeric_types or right["type"] not in numeric_types:
-            raise ValueError(
-                f"{operator} currently supports NUMBR and NUMBAR operands."
-            )
-
-        left_value = left["value"]
-        right_value = right["value"]
-
         if operator == "SUM OF":
             result = left_value + right_value
         elif operator == "DIFF OF":
