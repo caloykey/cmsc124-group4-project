@@ -2,7 +2,7 @@ from .expressions import evaluate_expression
 from .values import make_value, to_boolean, to_yarn
 
 
-def execute_statement(node, symbols, write_output=None):
+def execute_statement(node, symbols, write_output=None, read_input=None):
     kind = node["kind"]
 
     if kind == "declaration":
@@ -67,7 +67,7 @@ def execute_statement(node, symbols, write_output=None):
                     break
 
         for statement in selected_body:
-            signal = execute_statement(statement, symbols, write_output)
+            signal = execute_statement(statement, symbols, write_output, read_input)
 
             if signal == "break":
                 return signal
@@ -91,13 +91,13 @@ def execute_statement(node, symbols, write_output=None):
 
             if matched:
                 for statement in case["body"]:
-                    signal = execute_statement(statement, symbols, write_output)
+                    signal = execute_statement(statement, symbols, write_output, read_input)
 
                     if signal == "break":
                         return
 
         for statement in node.get("default_body", []):
-            signal = execute_statement(statement, symbols, write_output)
+            signal = execute_statement(statement, symbols, write_output, read_input)
 
             if signal == "break":
                 return
@@ -135,7 +135,7 @@ def execute_statement(node, symbols, write_output=None):
                     break
 
             for statement in node["body"]:
-                signal = execute_statement(statement, symbols, write_output)
+                signal = execute_statement(statement, symbols, write_output, read_input)
 
                 if signal == "break":
                     return
@@ -152,16 +152,32 @@ def execute_statement(node, symbols, write_output=None):
 
         return
 
+    if kind == "input":
+        name = node["name"]
+
+        if name not in symbols:
+            raise ValueError(f"Variable '{name}' has not been declared.")
+
+        if read_input is None:
+            raise ValueError("GIMMEH requires an input callback.")
+
+        text = read_input(name)
+
+        if text is None:
+            raise ValueError("Input cancelled.")
+
+        symbols[name] = make_value("YARN", text)
+        return
+
     raise ValueError(f"Unsupported statement kind: {kind}")
 
-def execute_program(program, write_output=None):
+def execute_program(program, write_output=None, read_input=None):
     symbols = {"IT": make_value("NOOB", None)}
     errors = []
 
     for statement in program["body"]:
         try:
-            signal = execute_statement(statement, symbols, write_output)
-
+            signal = execute_statement(statement, symbols, write_output, read_input)
             if signal == "break":
                 raise ValueError("GTFO requires an enclosing switch, loop, or function.")
         except ValueError as error:
