@@ -30,6 +30,7 @@ KTHXBYE'''
 
 
 def run_analysis():
+    clear_results()
     source = code_editor.get("1.0", "end-1c")
     tokens, errors = tokenize(source)
     phase = "Lexical"
@@ -71,21 +72,20 @@ def load_sample():
     code_editor.insert("1.0", SAMPLE_CODE)
 
 
+def clear_results():
+    for table in (token_table, symbol_table):
+        for item in table.get_children():
+            table.delete(item)
+
+    for output in (error_output, console_output):
+        output.config(state=tk.NORMAL)
+        output.delete("1.0", tk.END)
+        output.config(state=tk.DISABLED)
+
+
 def clear_all():
     code_editor.delete("1.0", tk.END)
-
-    for item in token_table.get_children():
-        token_table.delete(item)
-
-    for item in symbol_table.get_children():
-        symbol_table.delete(item)
-
-    error_output.config(state=tk.NORMAL)
-    error_output.delete("1.0", tk.END)
-    error_output.config(state=tk.DISABLED)
-    console_output.config(state=tk.NORMAL)
-    console_output.delete("1.0", tk.END)
-    console_output.config(state=tk.DISABLED)
+    clear_results()
 
 
 def open_file():
