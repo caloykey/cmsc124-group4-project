@@ -1,6 +1,5 @@
 from .expressions import evaluate_expression
-from .values import make_value, to_boolean, to_yarn
-
+from .values import make_value, to_boolean, to_yarn, cast_value
 
 def execute_statement(node, symbols, write_output=None, read_input=None):
     kind = node["kind"]
@@ -167,6 +166,16 @@ def execute_statement(node, symbols, write_output=None, read_input=None):
             raise ValueError("Input cancelled.")
 
         symbols[name] = make_value("YARN", text)
+        return
+
+    if kind == "recast":
+        name = node["name"]
+
+        if name not in symbols:
+            raise ValueError(f"Variable '{name}' has not been declared.")
+
+        value = cast_value(symbols[name], node["target_type"])
+        symbols[name] = value
         return
 
     raise ValueError(f"Unsupported statement kind: {kind}")
