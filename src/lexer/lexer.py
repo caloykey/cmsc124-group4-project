@@ -94,7 +94,7 @@ def match_keyword(line, position):
             re.escape(word) for word in keyword.split()
         )
 
-        pattern = re.compile(pattern_text, re.IGNORECASE)
+        pattern = re.compile(pattern_text)
         match = pattern.match(remaining)
 
         if not match:
