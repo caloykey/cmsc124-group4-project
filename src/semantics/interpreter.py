@@ -176,6 +176,32 @@ def execute_statement(node, symbols, write_output=None, read_input=None):
 
     raise ValueError(f"Unsupported statement kind: {kind}")
 
+
+def register_functions(program):
+    functions = {}
+
+    definitions = list(program.get("functions", []))
+    definitions.extend(
+        statement
+        for statement in program["body"]
+        if statement["kind"] == "function"
+    )
+
+    for definition in definitions:
+        name = definition["name"]
+        parameters = definition["parameters"]
+
+        if name in functions:
+            raise ValueError(f"Function '{name}' has already been defined.")
+
+        if len(parameters) != len(set(parameters)):
+            raise ValueError(f"Function '{name}' has duplicate parameters.")
+
+        functions[name] = definition
+
+    return functions
+
+
 def execute_program(program, write_output=None, read_input=None):
     symbols = {"IT": make_value("NOOB", None)}
     errors = []
