@@ -1,6 +1,6 @@
 from .values import make_value, to_boolean, to_number, to_yarn, cast_value
 
-def evaluate_expression(node, symbols=None):
+def evaluate_expression(node, symbols=None, call_function=None):
     if symbols is None:
         symbols = {}
 
@@ -88,8 +88,8 @@ def evaluate_expression(node, symbols=None):
         if operator not in supported:
             raise ValueError(f"Unsupported binary operator: {operator}")
 
-        left = evaluate_expression(node["left"], symbols)
-        right = evaluate_expression(node["right"], symbols)
+        left = evaluate_expression(node["left"], symbols, call_function)
+        right = evaluate_expression(node["right"], symbols, call_function)
 
         if operator in {"BOTH SAEM", "DIFFRINT"}:
             equal = (
@@ -163,5 +163,19 @@ def evaluate_expression(node, symbols=None):
             result = float(result)
 
         return make_value(result_type, result)
+
+    if kind == "call":
+        if call_function is None:
+            raise ValueError("Function calls require a function callback.")
+
+        arguments = [
+            evaluate_expression(argument, symbols, call_function)
+            for argument in node["arguments"]
+        ]
+
+        value = call_function(node["name"], arguments)
+        result = make_value(value["type"], value["value"])
+        symbols["IT"] = result
+        return result
 
     raise ValueError(f"Unsupported expression kind: {kind}")
