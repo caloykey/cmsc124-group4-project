@@ -30,4 +30,9 @@ def execute_statement(node, symbols):
         symbols[name] = value
         return
 
+    if kind == "expression_statement":
+        value = evaluate_expression(node["expression"], symbols)
+        symbols["IT"] = value
+        return
+
     raise ValueError(f"Unsupported statement kind: {kind}")
