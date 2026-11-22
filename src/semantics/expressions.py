@@ -27,6 +27,30 @@ def evaluate_expression(node, symbols=None):
         operand = evaluate_expression(node["operand"], symbols)
         return make_value("TROOF", not to_boolean(operand))
 
+    if kind == "variadic":
+        operator = node["operator"]
+
+        if operator not in {"ALL OF", "ANY OF"}:
+            raise ValueError(f"Unsupported variadic operator: {operator}")
+
+        operands = node["operands"]
+
+        if not operands:
+            raise ValueError(f"{operator} requires at least one operand.")
+
+        values = [
+            to_boolean(evaluate_expression(operand, symbols))
+            for operand in operands
+        ]
+
+        if operator == "ALL OF":
+            result = all(values)
+        else:
+            result = any(values)
+
+        return make_value("TROOF", result)
+
+
     if kind == "binary":
         operator = node["operator"]
         supported = {
