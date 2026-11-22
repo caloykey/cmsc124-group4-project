@@ -16,6 +16,7 @@ def evaluate_expression(node):
             "BIGGR OF",
             "SMALLR OF",
             "QUOSHUNT OF",
+            "MOD OF",
         }
 
         if operator not in supported:
@@ -44,6 +45,10 @@ def evaluate_expression(node):
             result = max(left_value, right_value)
         elif operator == "SMALLR OF":
             result = min(left_value, right_value)
+        elif operator == "MOD OF":
+            if right_value == 0:
+                raise ValueError("Cannot calculate modulo by zero.")
+            result = left_value % right_value
         else:
             if right_value == 0:
                 raise ValueError("Cannot divide by zero.")
@@ -55,7 +60,7 @@ def evaluate_expression(node):
                     result = -result
             else:
                 result = left_value / right_value
-                
+
         result_type = "NUMBR"
 
         if "NUMBAR" in (left["type"], right["type"]):
