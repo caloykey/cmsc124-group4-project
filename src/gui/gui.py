@@ -3,7 +3,7 @@ from tkinter import ttk, font as tkfont, filedialog, messagebox, simpledialog
 from lexer.lexer import tokenize
 from errors import format_error
 from parser.syntax import check_syntax
-
+from semantics.values import to_yarn
 
 SAMPLE_CODE = '''HAI
 BTW Sample of currently supported syntax
@@ -119,6 +119,23 @@ def write_console(text):
     console_output.insert(tk.END, text)
     console_output.see(tk.END)
     console_output.config(state=tk.DISABLED)
+
+
+def update_symbol_table(symbols):
+    for item in symbol_table.get_children():
+        symbol_table.delete(item)
+
+    for name, value in symbols.items():
+        if value["type"] == "NOOB":
+            text = "NOOB"
+        else:
+            text = to_yarn(value)["value"]
+
+        symbol_table.insert(
+            "",
+            tk.END,
+            values=(name, value["type"], text),
+        )
 
 
 def request_input(variable_name):
