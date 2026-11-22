@@ -1,5 +1,5 @@
 from .expressions import evaluate_expression
-from .values import make_value
+from .values import make_value, to_boolean
 
 
 def execute_statement(node, symbols, write_output=None):
@@ -60,6 +60,24 @@ def execute_statement(node, symbols, write_output=None):
             output += "\n"
 
         write_output(output)
+        return
+
+    if kind == "if":
+        selected_body = node.get("else_body", [])
+
+        if to_boolean(symbols["IT"]):
+            selected_body = node["then_body"]
+        else:
+            for branch in node.get("elif_branches", []):
+                condition = evaluate_expression(branch["condition"], symbols)
+
+                if to_boolean(condition):
+                    selected_body = branch["body"]
+                    break
+
+        for statement in selected_body:
+            execute_statement(statement, symbols, write_output)
+
         return
 
     raise ValueError(f"Unsupported statement kind: {kind}")
