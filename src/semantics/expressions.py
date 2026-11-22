@@ -24,7 +24,7 @@ def evaluate_expression(node, symbols=None, call_function=None):
         if operator != "NOT":
             raise ValueError(f"Unsupported unary operator: {operator}")
 
-        operand = evaluate_expression(node["operand"], symbols)
+        operand = evaluate_expression(node["operand"], symbols, call_function)
         return make_value("TROOF", not to_boolean(operand))
 
     if kind == "variadic":
@@ -39,7 +39,7 @@ def evaluate_expression(node, symbols=None, call_function=None):
             raise ValueError(f"{operator} requires at least one operand.")
 
         values = [
-            to_boolean(evaluate_expression(operand, symbols))
+            to_boolean(evaluate_expression(operand, symbols, call_function))
             for operand in operands
         ]
 
@@ -59,13 +59,13 @@ def evaluate_expression(node, symbols=None, call_function=None):
         parts = []
 
         for operand in operands:
-            value = evaluate_expression(operand, symbols)
+            value = evaluate_expression(operand, symbols, call_function)
             parts.append(to_yarn(value)["value"])
 
         return make_value("YARN", "".join(parts))
 
     if kind == "cast":
-        value = evaluate_expression(node["expression"], symbols)
+        value = evaluate_expression(node["expression"], symbols, call_function)
         return cast_value(value, node["target_type"])
 
     if kind == "binary":
