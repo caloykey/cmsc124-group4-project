@@ -1,5 +1,5 @@
 from .expressions import evaluate_expression
-from .values import make_value, to_boolean
+from .values import make_value, to_boolean, to_yarn
 
 
 def execute_statement(node, symbols, write_output=None):
@@ -43,16 +43,7 @@ def execute_statement(node, symbols, write_output=None):
 
         for expression in node["values"]:
             value = evaluate_expression(expression, symbols)
-            value_type = value["type"]
-
-            if value_type == "TROOF":
-                text = "WIN" if value["value"] else "FAIL"
-            elif value_type in {"NUMBR", "NUMBAR", "YARN"}:
-                text = str(value["value"])
-            else:
-                raise ValueError(f"Cannot display a {value_type} value.")
-
-            parts.append(text)
+            parts.append(to_yarn(value)["value"])
 
         output = "".join(parts)
 
