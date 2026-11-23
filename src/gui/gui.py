@@ -136,9 +136,9 @@ def create_gui():
     global code_editor, token_table, symbol_table, console_output
 
     root = tk.Tk()
-    root.title("LOLCODE INTERPRETER")
-    root.geometry("1000x750")
-    root.minsize(700, 500)
+    root.title("LOLCODE Interpreter")
+    root.geometry("1150x780")
+    root.minsize(900, 600)
 
     # Interface font.
     default_font = tkfont.nametofont("TkDefaultFont")
@@ -155,22 +155,43 @@ def create_gui():
     )
 
     style = ttk.Style(root)
+    style.theme_use("clam")
 
+    style.configure(".", font=("Segoe UI", 10))
     style.configure("TLabel", font=("Segoe UI", 10))
-    style.configure("TButton", font=("Segoe UI", 10), padding=(10, 6))
-    style.configure("Treeview", font=("Segoe UI", 10), rowheight=28)
+    style.configure(
+        "TButton",
+        font=("Segoe UI", 10),
+        padding=(12, 7),
+    )
+    style.configure(
+        "TNotebook.Tab",
+        padding=(12, 7),
+    )
+    style.configure(
+        "Treeview",
+        font=("Segoe UI", 10),
+        rowheight=28,
+    )
     style.configure(
         "Treeview.Heading",
-        font=("Segoe UI", 10, "bold")
+        font=("Segoe UI", 10, "bold"),
     )
 
     # Main heading.
-    heading = ttk.Label(
+    heading = tk.Label(
         root,
         text="LOLCODE Interpreter",
-        font=("Segoe UI", 20, "bold")
+        font=("Segoe UI", 18, "bold"),
+        background=root.cget("background"),
+        foreground="#202124",
+        borderwidth=0,
     )
-    heading.pack(anchor="w", padx=24, pady=(18, 16))
+    heading.pack(
+        anchor="w",
+        padx=24,
+        pady=(18, 16),
+    )
 
     # Resizable left and right panels.
     workspace = ttk.Panedwindow(root, orient=tk.HORIZONTAL)
@@ -192,7 +213,7 @@ def create_gui():
         left_panel,
         text="Source Code",
         font=("Segoe UI", 11, "bold")
-    ).pack(anchor="w", padx=12)
+    ).pack(anchor="w", padx=12, pady=(0, 5))
 
     editor_frame = ttk.Frame(left_panel)
     editor_frame.pack(fill=tk.BOTH, expand=True, padx=12, pady=(0,5))
@@ -233,7 +254,7 @@ def create_gui():
 
     ttk.Button(
         button_frame,
-        text="Analyze",
+        text="Run",
         command=run_analysis
     ).pack(side=tk.LEFT, padx=(0, 5))
 
