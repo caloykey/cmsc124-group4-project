@@ -3,6 +3,7 @@ from tkinter import ttk, font as tkfont, filedialog, messagebox, simpledialog
 from lexer.lexer import tokenize
 from errors import format_error
 from parser.syntax import check_syntax
+from parser.ast import build_ast, format_ast
 from semantics.values import to_yarn
 from semantics.interpreter import execute_program
 
@@ -11,11 +12,20 @@ def run_analysis():
     clear_results()
     source = code_editor.get("1.0", "end-1c")
     tokens, errors = tokenize(source)
+    symbols = {}
     phase = "Lexical"
 
     if not errors:
         errors = check_syntax(tokens)
         phase = "Syntax"
+
+
+    if not errors:
+        program = build_ast(tokens)
+        symbols, errors = execute_program(program,write_console,request_input)
+        phase = "Runtime"
+
+    # print(format_ast(program))
 
     for item in token_table.get_children():
         token_table.delete(item)
@@ -27,6 +37,8 @@ def run_analysis():
                 token[key] for key in ("type", "lexeme", "line", "column")
             )
         )
+
+    show_symbols(symbols)
 
     if errors:
         message = f"{phase} errors:\n\n"
@@ -45,6 +57,25 @@ def run_analysis():
     error_output.insert(tk.END, message)
     error_output.config(state=tk.DISABLED)
 
+def show_symbols(symbols):
+    
+    names = [name for name in symbols if name != "IT"]
+    names += [name for name in symbols if name == "IT"]
+
+    for name in names:
+        symbol_table.insert(
+            "", tk.END, values=(name, symbols[name]["type"], format_value(symbols[name]))
+        )
+
+def format_value(value):
+    """Show a LOLCODE value the way the language writes it."""
+    if value["type"] == "NOOB":
+        return "NOOB"
+
+    if value["type"] == "TROOF":
+        return "WIN" if value["value"] else "FAIL"
+
+    return str(value["value"])
 
 def clear_results():
     for table in (token_table, symbol_table):
