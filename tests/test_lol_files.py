@@ -166,12 +166,13 @@ def run_case(path, runtime=None):
             return "SYNTAX ERROR", format_errors(errors)
         return "ACCEPT", ""
 
-    parse_program, execute_program = runtime
-    program, errors = parse_program(tokens)
+    build_ast, execute_program = runtime
+    errors = check_syntax(tokens)
 
     if errors:
         return "SYNTAX ERROR", format_errors(errors)
 
+    program = build_ast(tokens)
     output = []
 
     def read_input(variable_name):
@@ -245,14 +246,14 @@ def main():
     runtime = None
     if args.execute:
         try:
-            from parser.syntax import parse_program
+            from parser.ast import build_ast
             from semantics.interpreter import execute_program
         except ImportError as error:
             parser.exit(
                 2,
-                f"Execution needs parse_program() and execute_program().\n{error}\n",
+                f"Execution needs build_ast() and execute_program().\n{error}\n",
             )
-        runtime = (parse_program, execute_program)
+        runtime = (build_ast, execute_program)
 
     passed_cases = []
     failed_cases = []
