@@ -3,8 +3,7 @@ from tkinter import ttk, font as tkfont, filedialog, messagebox, simpledialog
 from lexer.lexer import tokenize
 from errors import format_error
 from parser.syntax import check_syntax
-from parser.ast import build_ast, format_ast
-from semantics.values import to_yarn
+from parser.ast import build_ast
 from semantics.interpreter import execute_program
 
 
@@ -25,7 +24,6 @@ def run_analysis():
         symbols, errors = execute_program(program,write_console,request_input)
         phase = "Runtime"
 
-    # print(format_ast(program))
 
     for item in token_table.get_children():
         token_table.delete(item)
@@ -49,13 +47,10 @@ def run_analysis():
     else:
         message = "Program finished successfully."
 
-    error_output.config(
-        state=tk.NORMAL,
-        foreground="red" if errors else "green"
+    write_console(
+        "\n" + message + "\n",
+        "error" if errors else "success",
     )
-    error_output.delete("1.0", tk.END)
-    error_output.insert(tk.END, message)
-    error_output.config(state=tk.DISABLED)
 
 def show_symbols(symbols):
     
@@ -82,11 +77,9 @@ def clear_results():
         for item in table.get_children():
             table.delete(item)
 
-    for output in (error_output, console_output):
-        output.config(state=tk.NORMAL)
-        output.delete("1.0", tk.END)
-        output.config(state=tk.DISABLED)
-
+    console_output.config(state=tk.NORMAL)
+    console_output.delete("1.0", tk.END)
+    console_output.config(state=tk.DISABLED)
 
 def clear_all():
     code_editor.delete("1.0", tk.END)
@@ -119,56 +112,11 @@ def open_file():
     clear_all()
     code_editor.insert("1.0", source)
 
-def write_console(text):
+def write_console(text, tag="output"):
     console_output.config(state=tk.NORMAL)
-    console_output.insert(tk.END, text)
+    console_output.insert(tk.END, text, tag)
     console_output.see(tk.END)
     console_output.config(state=tk.DISABLED)
-
-
-def run_program(program):
-    symbols, errors = execute_program(
-        program,
-        write_console,
-        request_input,
-    )
-
-    update_symbol_table(symbols)
-
-    if errors:
-        message = "Semantic errors:\n\n"
-        message += "\n".join(format_error(error) for error in errors)
-    else:
-        message = "Program finished successfully."
-
-    error_output.config(
-        state=tk.NORMAL,
-        foreground="red" if errors else "green",
-    )
-    error_output.delete("1.0", tk.END)
-    error_output.insert(tk.END, message)
-    error_output.config(state=tk.DISABLED)
-
-    return errors
-
-
-def update_symbol_table(symbols):
-    for item in symbol_table.get_children():
-        symbol_table.delete(item)
-
-    for name, value in symbols.items():
-        if value["type"] == "NOOB":
-            text = "NOOB"
-        elif value["type"] == "NUMBAR":
-            text = str(value["value"])
-        else:
-            text = to_yarn(value)["value"]
-
-        symbol_table.insert(
-            "",
-            tk.END,
-            values=(name, value["type"], text),
-        )
 
 
 def request_input(variable_name):
@@ -185,7 +133,7 @@ def request_input(variable_name):
 
 
 def create_gui():
-    global code_editor, token_table, error_output, symbol_table, console_output
+    global code_editor, token_table, symbol_table, console_output
 
     root = tk.Tk()
     root.title("LOLCODE INTERPRETER")
@@ -373,47 +321,26 @@ def create_gui():
     symbol_table.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     symbol_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
-    # Program Output section.
+    # Shared console for program output and errors.
     ttk.Label(
         right_panel,
-        text="Program Output",
-        font=("Segoe UI", 11, "bold")
-    ).grid(row=2, column=0, sticky="w", padx=(12, 0), pady=(0, 5))
+        text="Console",
+        font=("Segoe UI", 11, "bold"),
+    ).grid(
+        row=2,
+        column=0,
+        sticky="w",
+        padx=(12, 0),
+        pady=(0, 5),
+    )
 
-    output_notebook = ttk.Notebook(right_panel)
-    output_notebook.grid(
+    console_frame = ttk.Frame(right_panel)
+    console_frame.grid(
         row=3,
         column=0,
         sticky="nsew",
-        padx=(12, 0)
+        padx=(12, 0),
     )
-
-    error_frame = ttk.Frame(output_notebook)
-    console_frame = ttk.Frame(output_notebook)
-
-    output_notebook.add(error_frame, text="Errors")
-    output_notebook.add(console_frame, text="Console")
-
-    error_output = tk.Text(
-        error_frame,
-        height=8,
-        wrap=tk.WORD,
-        font=(code_font, 11),
-        padx=12,
-        pady=10,
-        foreground="red",
-        state=tk.DISABLED
-    )
-
-    error_scroll = ttk.Scrollbar(
-        error_frame,
-        orient=tk.VERTICAL,
-        command=error_output.yview
-    )
-    error_output.configure(yscrollcommand=error_scroll.set)
-
-    error_output.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-    error_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
     console_output = tk.Text(
         console_frame,
@@ -422,18 +349,35 @@ def create_gui():
         font=(code_font, 11),
         padx=12,
         pady=10,
-        state=tk.DISABLED
+        state=tk.DISABLED,
+    )
+
+    console_output.tag_configure(
+        "error",
+        foreground="#c62828",
+    )
+    console_output.tag_configure(
+        "success",
+        foreground="#2e7d32",
     )
 
     console_scroll = ttk.Scrollbar(
         console_frame,
         orient=tk.VERTICAL,
-        command=console_output.yview
+        command=console_output.yview,
     )
-    console_output.configure(yscrollcommand=console_scroll.set)
+    console_output.configure(
+        yscrollcommand=console_scroll.set,
+    )
 
-    console_output.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-    console_scroll.pack(side=tk.RIGHT, fill=tk.Y)
-
-
+    console_output.pack(
+        side=tk.LEFT,
+        fill=tk.BOTH,
+        expand=True,
+    )
+    console_scroll.pack(
+        side=tk.RIGHT,
+        fill=tk.Y,
+    )
+    
     root.mainloop()
