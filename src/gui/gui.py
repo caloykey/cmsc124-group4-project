@@ -47,7 +47,7 @@ def run_analysis():
         if phase == "Lexical":
             message += "\n\nSyntax checking skipped. Fix lexical errors first."
     else:
-        message = "No lexical or syntax errors found by the implemented checks."
+        message = "Program finished successfully."
 
     error_output.config(
         state=tk.NORMAL,
